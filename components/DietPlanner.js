@@ -299,7 +299,7 @@ const MacroBars = memo(({ macros }) => (
 ))
 
 // =================================================================
-// COMPONENTE MealCard (VERSÃO ATUALIZADA DA ETAPA 3)
+// COMPONENTE MealCard (VERSÃO COM LAYOUT ATUALIZADO)
 // =================================================================
 const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onEditItem, onDeleteItem }) => {
   const Icon = meal.icon
@@ -321,14 +321,16 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onEditItem, on
                 <span>{meal.emoji}</span> {meal.name}
               </h3>
               <p className="text-sm text-muted-foreground">{data?.total_kcal || 0} kcal</p>
+              {/* --- MACRONUTRIENTES AQUI --- */}
+              <div className="flex gap-3 font-medium text-xs text-muted-foreground mt-1">
+                <span className="text-green-600 dark:text-green-400">C: {data?.total_carbs_g || 0}g</span>
+                <span className="text-blue-600 dark:text-blue-400">P: {data?.total_protein_g || 0}g</span>
+                <span className="text-phoenix-600 dark:text-phoenix-400">G: {data?.total_fat_g || 0}g</span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-xs text-muted-foreground hidden sm:flex gap-3 font-medium">
-              <span className="text-green-600 dark:text-green-400">C: {data?.total_carbs_g || 0}g</span>
-              <span className="text-blue-600 dark:text-blue-400">P: {data?.total_protein_g || 0}g</span>
-              <span className="text-phoenix-600 dark:text-phoenix-400">G: {data?.total_fat_g || 0}g</span>
-            </div>
+          {/* O ícone de expandir/contrair agora fica sozinho à direita */}
+          <div className="flex items-center">
             {isExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
           </div>
         </div>
@@ -626,10 +628,10 @@ export default function DietPlanner() {
             <Button
               onClick={actions.fetchAllData}
               disabled={loading}
-              className="bg-background/80 backdrop-blur-md border border-border shadow-lg hover:shadow-xl transition-all rounded-xl px-6 py-3 h-auto"
+              className="bg-card border-border shadow-lg hover:shadow-xl hover:bg-accent transition-all rounded-xl px-6 py-3 h-auto text-foreground"
             >
               <RefreshCw className={`w-5 h-5 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Atualizar Dados
+             Atualizar Dados
             </Button>
           </motion.div>
 
