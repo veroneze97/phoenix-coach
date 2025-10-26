@@ -604,7 +604,9 @@ export default function DietPlanner() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-background to-blue-50 dark:from-gray-950 dark:via-background dark:to-gray-900 w-full px-6 lg:px-8 py-8">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-screen-xl mx-auto">
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-background to-blue-50 dark:from-gray-950 dark:via-background dark:to-gray-900 rounded-3xl p-6 lg:p-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -669,6 +671,8 @@ export default function DietPlanner() {
             </motion.div>
           )}
         </div>
+      </div>
+    </div>
 
         {/* Coluna Lateral (1/3) */}
         <div className="xl:col-span-1 space-y-fluid">
