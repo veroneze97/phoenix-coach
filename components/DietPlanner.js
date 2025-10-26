@@ -29,7 +29,6 @@ import {
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 // --- DESIGN SYSTEM TOKENS ---
-// Cores e gradientes definidos para consistência
 const COLORS = {
   phoenix: '#FF9F1C',
   gold: '#F5D68A',
@@ -38,7 +37,6 @@ const COLORS = {
   fat: '#F97316',
 }
 
-// Estilos de cartões para reutilização, com suporte a dark mode
 const cardStyles = {
   main: "bg-card/80 backdrop-blur-xl border border-border shadow-xl rounded-2xl p-8 dark:bg-gray-900/80",
   secondary: "bg-card/70 backdrop-blur-lg border border-border shadow-lg rounded-xl p-6 dark:bg-gray-900/70",
@@ -46,7 +44,6 @@ const cardStyles = {
   sidebar: "bg-card/90 backdrop-blur-xl border border-border shadow-lg rounded-2xl p-6 dark:bg-gray-900/90",
 }
 
-// Configurações das refeições com design unificado
 const MEALS = [
   { id: 'breakfast', name: 'Café da Manhã', icon: Coffee, emoji: '☀️', gradient: 'from-yellow-400 to-amber-400' },
   { id: 'lunch', name: 'Almoço', icon: Sun, emoji: '🌞', gradient: 'from-amber-400 to-orange-400' },
@@ -55,7 +52,7 @@ const MEALS = [
 ]
 
 // =================================================================
-// HOOK CUSTOMIZADO PARA GESTÃO DE DADOS (Centraliza a lógica)
+// HOOK CUSTOMIZADO PARA GESTÃO DE DADOS
 // =================================================================
 const useDietData = (userId) => {
   const [loading, setLoading] = useState(true)
@@ -74,11 +71,7 @@ const useDietData = (userId) => {
       const sevenDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
       const [
-        { data: intake },
-        { data: adherence },
-        { data: totals },
-        { data: items },
-        { data: summary }
+        { data: intake }, { data: adherence }, { data: totals }, { data: items }, { data: summary }
       ] = await Promise.all([
         supabase.from('v_daily_intake').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
         supabase.from('v_daily_adherence').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
@@ -144,17 +137,12 @@ const useDietData = (userId) => {
     }
   }, [userId, fetchAllData])
 
-  return {
-    loading, recalculating, dailyIntake, dailyAdherence, mealTotals, mealItems, weeklySummary,
-    actions: { recalculateGoals, addFood }
-  }
+  return { loading, recalculating, dailyIntake, dailyAdherence, mealTotals, mealItems, weeklySummary, actions: { recalculateGoals, addFood } }
 }
 
 // =================================================================
 // COMPONENTES MENORES E REUTILIZÁVEIS
 // =================================================================
-
-// Componente para o Anel de Progresso Principal
 const ProgressRing = memo(({ progress, label, message }) => (
   <div className="flex flex-col items-center">
     <div className="relative w-48 h-48 mb-6">
@@ -183,7 +171,6 @@ const ProgressRing = memo(({ progress, label, message }) => (
   </div>
 ))
 
-// Componente para as Barras de Macronutrientes
 const MacroBars = memo(({ macros }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8">
     {macros.map((macro, index) => {
@@ -209,8 +196,7 @@ const MacroBars = memo(({ macros }) => (
   </div>
 ))
 
-// Componente para o Card de Refeição
-const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onAddClick }) => {
+const MealCard = memo(({ meal, data, items, isExpanded, onToggle }) => {
   const Icon = meal.icon
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 * MEALS.indexOf(meal) }}>
@@ -237,7 +223,6 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onAddClick }) 
             {isExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
           </div>
         </div>
-
         <AnimatePresence>
           {isExpanded && (
             <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
@@ -259,7 +244,6 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onAddClick }) 
   )
 })
 
-// Componente para o Modal de Adicionar Alimento
 const AddFoodModal = memo(({ open, onOpenChange, onAddFood }) => {
   const [selectedMealType, setSelectedMealType] = useState('breakfast')
   const [foodSearch, setFoodSearch] = useState('')
@@ -332,7 +316,6 @@ const AddFoodModal = memo(({ open, onOpenChange, onAddFood }) => {
   )
 })
 
-
 // =================================================================
 // COMPONENTE PRINCIPAL
 // =================================================================
@@ -385,7 +368,6 @@ export default function DietPlanner() {
   }
 
   return (
-    // CORREÇÃO 1: Container principal agora usa max-w-screen-2xl para telas ultra-largas
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-background to-blue-50 dark:from-gray-950 dark:via-background dark:to-gray-900 max-w-screen-2xl mx-auto px-6 lg:px-8 py-8">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-10">
@@ -403,17 +385,66 @@ export default function DietPlanner() {
         </Button>
       </motion.div>
 
-      {/* CORREÇÃO 2: Grid principal agora se reorganiza em telas ultra-largas (2xl) */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 2xl:grid-cols-12 gap-8">
-        {/* Coluna Principal (2/3 no xl, 8/12 no 2xl) */}
-        <div className="xl:col-span-2 2xl:col-span-8 space-y-8">
-          {/* Card de Progresso Principal */}
+      {/* LAYOUT ADAPTATIVO PARA TELAS GRANDES */}
+      <div className="space-y-8">
+        {/* Seção para telas de tablet a desktop (padrão) */}
+        <div className="xl:hidden space-y-8">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-foreground">Refeições de Hoje</h2>
+                <Button onClick={() => setIsAddModalOpen(true)} className="bg-gradient-to-r from-orange-400 to-orange-600 text-white rounded-xl px-5 py-2.5 shadow-lg hover:shadow-xl transition-all">
+                  <Plus className="w-5 h-5 mr-2" /> Adicionar
+                </Button>
+              </div>
+              <div className="space-y-4">
+                {MEALS.map(meal => {
+                  const data = mealTotals.find(m => m.meal_type === meal.id)
+                  const items = mealItems.filter(item => item.meal_type === meal.id)
+                  return (
+                    <MealCard
+                      key={meal.id}
+                      meal={meal}
+                      data={data}
+                      items={items}
+                      isExpanded={expandedMeals.has(meal.id)}
+                      onToggle={() => toggleMeal(meal.id)}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className={cardStyles.sidebar}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 rounded-full bg-gradient-to-br from-orange-400 to-amber-400">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xl text-foreground">Nutricionista Phoenix</h3>
+                  <p className="text-sm text-muted-foreground">Plano otimizado!</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-foreground">Calorias</span>
+                    <span className="font-bold text-orange-600 dark:text-orange-400">{dailyIntake?.total_kcal || 0} / {dailyIntake?.goal_kcal || 2000}</span>
+                  </div>
+                </div>
+                <Button onClick={actions.recalculateGoals} disabled={recalculating} className="w-full bg-gradient-to-r from-orange-400 to-orange-600 dark:from-orange-500 dark:to-orange-700 text-white rounded-xl py-3 shadow-lg hover:shadow-xl transition-all">
+                  <RefreshCw className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
+                  {recalculating ? 'Recalculando...' : 'Recalcular Plano'}
+                </Button>
+              </div>
+            </motion.div>
+        </div>
+
+        {/* Conteúdo Principal (Progresso e Gráfico) */}
+        <div className="xl:col-span-2 2xl:col-span-12 space-y-8">
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={cardStyles.main}>
             <ProgressRing progress={calorieProgress} label="Do seu objetivo" message={getMotivationalMessage(calorieProgress)} />
             <MacroBars macros={macroBarsData} />
           </motion.div>
 
-          {/* Card de Análise Semanal */}
           {weeklySummary.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={cardStyles.secondary}>
               <h3 className="text-2xl font-bold mb-6 flex items-center gap-3 text-foreground">
@@ -425,7 +456,7 @@ export default function DietPlanner() {
                   <LineChart data={weeklyChartData}>
                     <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
-                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
+                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '12px' }} />
                     <Line type="monotone" dataKey="adherence" stroke={COLORS.phoenix} strokeWidth={3} dot={{ fill: COLORS.phoenix, r: 5 }} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -434,63 +465,60 @@ export default function DietPlanner() {
           )}
         </div>
 
-        {/* Coluna Lateral (1/3 no xl, 4/12 no 2xl) */}
-        <div className="xl:col-span-1 2xl:col-span-4 space-y-8">
-          {/* Seção de Refeições */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-foreground">Refeições de Hoje</h2>
-              <Button onClick={() => setIsAddModalOpen(true)} className="bg-gradient-to-r from-orange-400 to-orange-600 text-white rounded-xl px-5 py-2.5 shadow-lg hover:shadow-xl transition-all">
-                <Plus className="w-5 h-5 mr-2" /> Adicionar
-              </Button>
-            </div>
+        {/* Seção para telas ultra-largas (desktop grande) */}
+        <div className="hidden xl:grid xl:grid-cols-3 gap-8">
+          <div className="xl:col-span-1 space-y-8">
             <div className="space-y-4">
-              {MEALS.map(meal => {
-                const data = mealTotals.find(m => m.meal_type === meal.id)
-                const items = mealItems.filter(item => item.meal_type === meal.id)
-                return (
-                  <MealCard
-                    key={meal.id}
-                    meal={meal}
-                    data={data}
-                    items={items}
-                    isExpanded={expandedMeals.has(meal.id)}
-                    onToggle={() => toggleMeal(meal.id)}
-                    onAddClick={() => setIsAddModalOpen(true)}
-                  />
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Card do Nutricionista */}
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className={cardStyles.sidebar}>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-full bg-gradient-to-br from-orange-400 to-amber-400">
-                <Sparkles className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-foreground">Refeições de Hoje</h2>
+                <Button onClick={() => setIsAddModalOpen(true)} className="bg-gradient-to-r from-orange-400 to-orange-600 text-white rounded-xl px-5 py-2.5 shadow-lg hover:shadow-xl transition-all">
+                  <Plus className="w-5 h-5 mr-2" /> Adicionar
+                </Button>
               </div>
-              <div>
-                <h3 className="font-bold text-xl text-foreground">Nutricionista Phoenix</h3>
-                <p className="text-sm text-muted-foreground">Plano otimizado!</p>
+              <div className="space-y-4">
+                {MEALS.map(meal => {
+                  const data = mealTotals.find(m => m.meal_type === meal.id)
+                  const items = mealItems.filter(item => item.meal_type === meal.id)
+                  return (
+                    <MealCard
+                      key={meal.id}
+                      meal={meal}
+                      data={data}
+                      items={items}
+                      isExpanded={expandedMeals.has(meal.id)}
+                      onToggle={() => toggleMeal(meal.id)}
+                    />
+                  )
+                })}
               </div>
             </div>
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-foreground">Calorias</span>
-                  <span className="font-bold text-orange-600 dark:text-orange-400">{dailyIntake?.total_kcal || 0} / {dailyIntake?.goal_kcal || 2000}</span>
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className={cardStyles.sidebar}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 rounded-full bg-gradient-to-br from-orange-400 to-amber-400">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xl text-foreground">Nutricionista Phoenix</h3>
+                  <p className="text-sm text-muted-foreground">Plano otimizado!</p>
                 </div>
               </div>
-              <Button onClick={actions.recalculateGoals} disabled={recalculating} className="w-full bg-gradient-to-r from-orange-400 to-orange-600 text-white rounded-xl py-3 shadow-lg hover:shadow-xl transition-all">
-                <RefreshCw className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
-                {recalculating ? 'Recalculando...' : 'Recalcular Plano'}
-              </Button>
-            </div>
-          </motion.div>
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-foreground">Calorias</span>
+                    <span className="font-bold text-orange-600 dark:text-orange-400">{dailyIntake?.total_kcal || 0} / {dailyIntake?.goal_kcal || 2000}</span>
+                  </div>
+                </div>
+                <Button onClick={actions.recalculateGoals} disabled={recalculating} className="w-full bg-gradient-to-r from-orange-400 to-orange-600 dark:from-orange-500 dark:to-orange-700 text-white rounded-xl py-3 shadow-lg hover:shadow-xl transition-all">
+                  <RefreshCw className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
+                  {recalculating ? 'Recalculando...' : 'Recalcular Plano'}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </div>
 
-      {/* Modal de Adicionar Alimento */}
       <AddFoodModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} onAddFood={actions.addFood} />
     </div>
   )
