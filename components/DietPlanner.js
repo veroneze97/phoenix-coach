@@ -44,9 +44,6 @@ const MEALS = [
   { id: 'snacks', name: 'Lanches', icon: Cookie, emoji: '🍪', gradient: 'from-orange-400 to-red-400' },
 ]
 
-// =================================================================
-// HOOK CUSTOMIZADO PARA GESTÃO DE DADOS (SEM MUDANÇAS)
-// =================================================================
 const useDietData = (userId) => {
   const [loading, setLoading] = useState(true)
   const [recalculating, setRecalculating] = useState(false)
@@ -109,18 +106,13 @@ const useDietData = (userId) => {
   return { loading, recalculating, dailyIntake, dailyAdherence, mealTotals, mealItems, weeklySummary, actions: { fetchAllData, recalculateGoals, addFood, updateFood, deleteFood } }
 }
 
-// =================================================================
-// NOVO COMPONENTE: A TELA VIVA (THE LIVING INTERFACE)
-// =================================================================
 const PhoenixBackground = memo(({ progress }) => {
   const bgOpacity = Math.min(progress / 100, 0.8)
   const bgStyle = { background: `radial-gradient(circle at 50% 50%, rgba(251, 146, 60, ${bgOpacity * 0.3}), rgba(251, 146, 60, 0) 50%), linear-gradient(to bottom, #f8fafc, #e2e8f0)` }
-  return <motion.div className="fixed inset-0 -z-10" style={bgStyle} />
+  // --- A MUDANÇA ESTÁ AQUI ---
+  return <motion.div className="fixed inset-0 -z-10" style={bgStyle} pointerEvents="none" />
 })
 
-// =================================================================
-// NOVO COMPONENTE: A SEMENTE FÊNIX (THE GROWTH JOURNEY)
-// =================================================================
 const PhoenixTree = memo(({ dailyIntake }) => {
   const progress = useMemo(() => {
     if (!dailyIntake) return { c: 0, p: 0, g: 0 }
@@ -142,9 +134,6 @@ const PhoenixTree = memo(({ dailyIntake }) => {
   )
 })
 
-// =================================================================
-// COMPONENTE MEALCARD (COMPLETO E CORRIGIDO)
-// =================================================================
 const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onEditItem, onDeleteItem }) => {
   const Icon = meal.icon
   return (
@@ -185,9 +174,6 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onEditItem, on
   )
 })
 
-// =================================================================
-// COMPONENTE FOODMODAL (COMPLETO E CORRIGIDO)
-// =================================================================
 const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdit }) => {
     const [selectedMealType, setSelectedMealType] = useState('breakfast')
     const [foodSearch, setFoodSearch] = useState('')
@@ -201,9 +187,6 @@ const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdi
     return (<Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="sm:max-w-lg backdrop-blur-xl bg-background/95 rounded-2xl"><DialogHeader><DialogTitle className="text-2xl font-bold text-foreground">{itemToEdit ? 'Editar Alimento' : 'Adicionar Alimento'}</DialogTitle></DialogHeader><div className="space-y-6"><div><Label className="text-sm font-semibold text-foreground">Para qual refeição?</Label><div className="grid grid-cols-2 gap-3 mt-2">{MEALS.map(meal => (<Button key={meal.id} variant={selectedMealType === meal.id ? "default" : "outline"} size="sm" onClick={() => setSelectedMealType(meal.id)} className={`rounded-xl py-3 transition-all ${selectedMealType === meal.id ? `bg-gradient-to-r ${meal.gradient} shadow-lg` : '' }`}><span className="mr-2">{meal.emoji}</span> {meal.name}</Button>))}</div></div><div><Label className="text-sm font-semibold text-foreground">Buscar Alimento</Label><div className="relative mt-2"><Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Ex: Frango, Arroz..." value={foodSearch} onChange={(e) => { setFoodSearch(e.target.value); searchFoods(e.target.value); }} className="pl-10 h-11 rounded-lg" />{foodResults.length > 0 && (<div className="mt-2 max-h-48 overflow-y-auto border rounded-lg p-2 bg-accent/30">{foodResults.map(food => (<div key={food.id} onClick={() => { setSelectedFood(food); setFoodSearch(food.name); setFoodResults([]); }} className="p-3 rounded-md hover:bg-accent cursor-pointer transition-colors"><p className="font-medium text-foreground">{food.name}</p><p className="text-xs text-muted-foreground">{food.kcal_per_100g} kcal / 100g</p></div>))}</div>)}</div></div><div><Label className="text-sm font-semibold text-foreground">Quantidade</Label><Input type="number" placeholder="Ex: 150" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="mt-2 h-11 rounded-lg" />{selectedFood && quantity && (<p className="text-xs text-muted-foreground mt-1">Total: ~{Math.round((parseFloat(quantity) || 0) * (selectedFood.grams_per_unit || 1))}g</p>)}</div></div><div className="flex gap-3 mt-6"><Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 h-11 rounded-lg">Cancelar</Button><Button onClick={handleSave} disabled={!selectedFood || !quantity || isSaving} className="flex-1 h-11 rounded-lg bg-gradient-to-r from-phoenix-500 to-phoenix-600 shadow-lg hover:shadow-xl transition-all">{isSaving ? 'Salvando...' : (itemToEdit ? 'Salvar Alterações' : 'Adicionar Alimento')}</Button></div></DialogContent></Dialog>)
 })
 
-// =================================================================
-// COMPONENTE PRINCIPAL COM O NOVO DESIGN
-// =================================================================
 export default function DietPlanner() {
   const { user } = useAuth()
   const { loading, recalculating, dailyIntake, dailyAdherence, mealTotals, mealItems, weeklySummary, actions } = useDietData(user?.id)
