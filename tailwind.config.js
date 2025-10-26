@@ -55,13 +55,31 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // --- SUAS CORES PHOENIX (APRIMORADAS) ---
         phoenix: {
-          amber: '#FFB300',
-          gold: '#D97706',
-          darkGold: '#B45309',
+          50: '#fffbeb',
+          100: '#fef3c7',
+          200: '#fde68a',
+          300: '#fcd34d',
+          400: '#fbbf24',
+          500: '#f59e0b', // Cor principal (DEFAULT)
+          600: '#d97706',
+          700: '#b45309',
+          800: '#92400e',
+          900: '#78350f',
+          DEFAULT: '#f59e0b', // Agora `bg-phoenix` usa esta cor
         },
       },
+      // --- SUAS CONFIGURAÇÕES FLUIDAS ---
+      spacing: {
+        'fluid': 'clamp(1.5rem, 4vw, 3rem)',
+      },
+      fontSize: {
+        'fluid-h1': 'clamp(2rem, 5vw, 3.5rem)',
+        'fluid-h2': 'clamp(1.5rem, 3vw, 2.5rem)',
+      },
       borderRadius: {
+        'fluid': 'clamp(0.75rem, 2vw, 1.5rem)',
         lg: "20px",
         md: "16px",
         sm: "12px",

@@ -25,6 +25,8 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
+  Edit2, // Importado
+  Trash2, // Importado
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -53,7 +55,7 @@ const MEALS = [
 ]
 
 // =================================================================
-// HOOK CUSTOMIZADO PARA GESTÃO DE DADOS
+// HOOK CUSTOMIZADO PARA GESTÃO DE DADOS (VERSÃO ATUALIZADA DA ETAPA 2)
 // =================================================================
 const useDietData = (userId) => {
   const [loading, setLoading] = useState(true)
@@ -148,6 +150,41 @@ const useDietData = (userId) => {
     }
   }, [userId, fetchAllData])
 
+  const updateFood = useCallback(async (itemId, foodData) => {
+    const { selectedMealType, selectedFood, quantity } = foodData
+    try {
+      const qty = parseFloat(quantity) || 0
+      const gramsPerUnit = selectedFood.grams_per_unit || 1
+      const gramsTotal = qty * gramsPerUnit
+
+      const { error } = await supabase.from('meal_items').update({
+        meal_type: selectedMealType,
+        food_id: selectedFood.id,
+        qty_units: qty,
+        grams_total: gramsTotal,
+      }).eq('id', itemId)
+
+      if (error) throw error
+      toast.success('Alimento atualizado! ✅')
+      await fetchAllData()
+    } catch (error) {
+      console.error('Error updating food:', error)
+      toast.error('Erro ao atualizar alimento.')
+    }
+  }, [userId, fetchAllData])
+
+  const deleteFood = useCallback(async (itemId) => {
+    try {
+      const { error } = await supabase.from('meal_items').delete().eq('id', itemId)
+      if (error) throw error
+      toast.success('Alimento removido! 🗑️')
+      await fetchAllData()
+    } catch (error) {
+      console.error('Error deleting food:', error)
+      toast.error('Erro ao remover alimento.')
+    }
+  }, [userId, fetchAllData])
+
   return {
     loading,
     recalculating,
@@ -156,7 +193,13 @@ const useDietData = (userId) => {
     mealTotals,
     mealItems,
     weeklySummary,
-    actions: { recalculateGoals, addFood }
+    actions: { 
+      fetchAllData,
+      recalculateGoals, 
+      addFood, 
+      updateFood,
+      deleteFood
+    }
   }
 }
 
@@ -190,7 +233,7 @@ const ProgressRing = memo(({ progress, label, message }) => (
             strokeDashoffset: 2 * Math.PI * 88 * (1 - Math.min(progress / 100, 1))
           }}
           transition={{ duration: 1.5, ease: "easeOut" }}
-          className="text-orange-500 dark:text-orange-400"
+          className="text-phoenix-500 dark:text-phoenix-400"
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -209,7 +252,7 @@ const ProgressRing = memo(({ progress, label, message }) => (
       key={progress}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="text-center text-lg font-medium text-center max-w-sm text-orange-600 dark:text-orange-400"
+      className="text-center text-lg font-medium text-center max-w-sm text-phoenix-600 dark:text-phoenix-400"
     >
       {message}
     </motion.p>
@@ -253,7 +296,10 @@ const MacroBars = memo(({ macros }) => (
   </div>
 ))
 
-const MealCard = memo(({ meal, data, items, isExpanded, onToggle }) => {
+// =================================================================
+// COMPONENTE MealCard (VERSÃO ATUALIZADA DA ETAPA 3)
+// =================================================================
+const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onEditItem, onDeleteItem }) => {
   const Icon = meal.icon
   return (
     <motion.div
@@ -262,7 +308,7 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle }) => {
       transition={{ delay: 0.1 * MEALS.indexOf(meal) }}
     >
       <Card className={`${cardStyles.interactive} relative overflow-hidden`} onClick={onToggle}>
-        <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-orange-400 to-orange-600" />
+        <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-phoenix-400 to-phoenix-600" />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className={`p-3 rounded-full bg-gradient-to-br ${meal.gradient} shadow-md`}>
@@ -296,10 +342,30 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle }) => {
               <div className="mt-4 pt-4 border-t border-border space-y-2">
                 {items.length > 0 ? (
                   items.map((item) => (
-                    <div key={item.id} className="p-3 rounded-lg bg-accent/50">
-                      <div className="flex justify-between text-sm">
+                    <div key={item.id} className="p-3 rounded-lg bg-accent/50 group/item transition-all">
+                      <div className="flex justify-between text-sm items-center">
                         <span className="font-medium text-foreground">{item.food_name}</span>
-                        <span className="font-semibold text-foreground">{item.item_kcal} kcal</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground">{item.item_kcal} kcal</span>
+                          <div className="flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              className="h-7 w-7 text-muted-foreground hover:text-blue-600" 
+                              onClick={(e) => { e.stopPropagation(); onEditItem(item); }}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              className="h-7 w-7 text-muted-foreground hover:text-red-600" 
+                              onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -315,13 +381,31 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle }) => {
   )
 })
 
-const AddFoodModal = memo(({ open, onOpenChange, onAddFood }) => {
+// =================================================================
+// MODAL GENÉRICO PARA ADICIONAR/EDITAR (NOVO COMPONENTE)
+// =================================================================
+const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdit }) => {
   const [selectedMealType, setSelectedMealType] = useState('breakfast')
   const [foodSearch, setFoodSearch] = useState('')
   const [foodResults, setFoodResults] = useState([])
   const [selectedFood, setSelectedFood] = useState(null)
   const [quantity, setQuantity] = useState('')
-  const [isAdding, setIsAdding] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (itemToEdit) {
+      setSelectedMealType(itemToEdit.meal_type)
+      setFoodSearch(itemToEdit.food_name)
+      setSelectedFood({ id: itemToEdit.food_id, name: itemToEdit.food_name, grams_per_unit: itemToEdit.grams_per_unit })
+      setQuantity(itemToEdit.qty_units.toString())
+    } else {
+      setSelectedMealType('breakfast')
+      setFoodSearch('')
+      setSelectedFood(null)
+      setQuantity('')
+      setFoodResults([])
+    }
+  }, [itemToEdit, open])
 
   const searchFoods = async (query) => {
     if (query.length < 2) {
@@ -332,23 +416,28 @@ const AddFoodModal = memo(({ open, onOpenChange, onAddFood }) => {
     if (!error) setFoodResults(data)
   }
 
-  const handleAdd = async () => {
+  const handleSave = async () => {
     if (!selectedFood || !quantity) return
-    setIsAdding(true)
-    await onAddFood({ selectedMealType, selectedFood, quantity })
-    setIsAdding(false)
+    setIsSaving(true)
+    const foodData = { selectedMealType, selectedFood, quantity }
+    
+    if (itemToEdit) {
+      await onUpdateFood(itemToEdit.id, foodData)
+    } else {
+      await onAddFood(foodData)
+    }
+
+    setIsSaving(false)
     onOpenChange(false)
-    setFoodSearch('')
-    setSelectedFood(null)
-    setQuantity('')
-    setFoodResults([])
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg backdrop-blur-xl bg-background/95 rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-foreground">Adicionar Alimento</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-foreground">
+            {itemToEdit ? 'Editar Alimento' : 'Adicionar Alimento'}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
           <div>
@@ -422,11 +511,11 @@ const AddFoodModal = memo(({ open, onOpenChange, onAddFood }) => {
             Cancelar
           </Button>
           <Button
-            onClick={handleAdd}
-            disabled={!selectedFood || !quantity || isAdding}
-            className="flex-1 h-11 rounded-lg bg-gradient-to-r from-orange-400 to-orange-600 shadow-lg hover:shadow-xl transition-all"
+            onClick={handleSave}
+            disabled={!selectedFood || !quantity || isSaving}
+            className="flex-1 h-11 rounded-lg bg-gradient-to-r from-phoenix-500 to-phoenix-600 shadow-lg hover:shadow-xl transition-all"
           >
-            {isAdding ? 'Adicionando...' : 'Adicionar Alimento'}
+            {isSaving ? 'Salvando...' : (itemToEdit ? 'Salvar Alterações' : 'Adicionar Alimento')}
           </Button>
         </div>
       </DialogContent>
@@ -434,15 +523,17 @@ const AddFoodModal = memo(({ open, onOpenChange, onAddFood }) => {
   )
 })
 
+
 // =================================================================
-// COMPONENTE PRINCIPAL COM DESIGN FLUIDO
+// COMPONENTE PRINCIPAL COM DESIGN FLUIDO (VERSÃO FINAL)
 // =================================================================
 export default function DietPlanner() {
   const { user } = useAuth()
   const { loading, recalculating, dailyIntake, dailyAdherence, mealTotals, mealItems, weeklySummary, actions } = useDietData(user?.id)
 
   const [expandedMeals, setExpandedMeals] = useState(new Set())
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isFoodModalOpen, setIsFoodModalOpen] = useState(false)
+  const [itemToEdit, setItemToEdit] = useState(null)
 
   const calorieProgress = useMemo(() => {
     if (!dailyIntake) return 0
@@ -450,7 +541,7 @@ export default function DietPlanner() {
   }, [dailyIntake])
 
   const macroBarsData = useMemo(() => [
-    { label: 'Calorias', icon: Flame, current: dailyIntake?.total_kcal || 0, goal: dailyIntake?.goal_kcal || 2000, unit: 'kcal', color: COLORS.phoenix, gradient: 'from-orange-400 to-amber-400' },
+    { label: 'Calorias', icon: Flame, current: dailyIntake?.total_kcal || 0, goal: dailyIntake?.goal_kcal || 2000, unit: 'kcal', color: COLORS.phoenix, gradient: 'from-phoenix-400 to-phoenix-600' },
     { label: 'Proteínas', icon: Activity, current: dailyIntake?.total_protein_g || 0, goal: dailyIntake?.goal_protein_g || 150, unit: 'g', color: COLORS.protein, gradient: 'from-blue-400 to-blue-600' },
     { label: 'Carboidratos', icon: Target, current: dailyIntake?.total_carbs_g || 0, goal: dailyIntake?.goal_carbs_g || 250, unit: 'g', color: COLORS.carbs, gradient: 'from-green-400 to-green-600' },
     { label: 'Gorduras', icon: Sparkles, current: dailyIntake?.total_fat_g || 0, goal: dailyIntake?.goal_fat_g || 65, unit: 'g', color: COLORS.fat, gradient: 'from-orange-400 to-red-500' },
@@ -481,6 +572,24 @@ export default function DietPlanner() {
     })
   }
 
+  // --- FUNÇÕES DE HANDLING (NOVO) ---
+  const handleAddFood = async (foodData) => {
+    await actions.addFood(foodData)
+  }
+
+  const handleUpdateFood = async (itemId, foodData) => {
+    await actions.updateFood(itemId, foodData)
+  }
+  
+  const handleEditClick = (item) => {
+    setItemToEdit(item)
+    setIsFoodModalOpen(true)
+  }
+
+  const handleDeleteClick = (itemId) => {
+    actions.deleteFood(itemId)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -488,7 +597,7 @@ export default function DietPlanner() {
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         >
-          <Flame className="w-12 h-12 text-orange-500" />
+          <Flame className="w-12 h-12 text-phoenix-500" />
         </motion.div>
       </div>
     )
@@ -503,7 +612,7 @@ export default function DietPlanner() {
         className="flex items-center justify-between mb-10"
       >
         <div>
-          <h1 className="text-fluid-h1 font-bold tracking-tight bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+          <h1 className="text-fluid-h1 font-bold tracking-tight bg-gradient-to-r from-phoenix-500 to-phoenix-600 bg-clip-text text-transparent">
             Nutrição
           </h1>
           <p className="text-lg text-muted-foreground mt-1">
@@ -511,12 +620,12 @@ export default function DietPlanner() {
           </p>
         </div>
         <Button
-          onClick={actions.recalculateGoals}
-          disabled={recalculating}
+          onClick={actions.fetchAllData}
+          disabled={loading}
           className="bg-background/80 backdrop-blur-md border border-border shadow-lg hover:shadow-xl transition-all rounded-xl px-6 py-3 h-auto"
         >
-          <RefreshCw className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
-          Recalcular Metas
+          <RefreshCw className={`w-5 h-5 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Atualizar Dados
         </Button>
       </motion.div>
 
@@ -524,7 +633,6 @@ export default function DietPlanner() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-fluid">
         {/* Coluna Principal (2/3) */}
         <div className="xl:col-span-2 space-y-fluid">
-          {/* Card de Progresso Principal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -538,7 +646,6 @@ export default function DietPlanner() {
             <MacroBars macros={macroBarsData} />
           </motion.div>
 
-          {/* Card de Análise Semanal */}
           {weeklySummary.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -546,7 +653,7 @@ export default function DietPlanner() {
               className={cardStyles.secondary}
             >
               <h3 className="text-fluid-h2 font-bold mb-6 flex items-center gap-3 text-foreground">
-                <Calendar className="w-6 h-6 text-orange-500" />
+                <Calendar className="w-6 h-6 text-phoenix-500" />
                 Análise Semanal
               </h3>
               <div className="h-64">
@@ -565,13 +672,12 @@ export default function DietPlanner() {
 
         {/* Coluna Lateral (1/3) */}
         <div className="xl:col-span-1 space-y-fluid">
-          {/* Seção de Refeições */}
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-fluid-h2 font-bold text-foreground">Refeições de Hoje</h2>
               <Button
-                onClick={() => setIsAddModalOpen(true)}
-                className="bg-gradient-to-r from-orange-400 to-orange-600 text-white rounded-xl px-5 py-2.5 shadow-lg hover:shadow-xl transition-all"
+                onClick={() => setIsFoodModalOpen(true)}
+                className="bg-gradient-to-r from-phoenix-500 to-phoenix-600 text-white rounded-xl px-5 py-2.5 shadow-lg hover:shadow-xl transition-all"
               >
                 <Plus className="w-5 h-5 mr-2" /> Adicionar
               </Button>
@@ -588,20 +694,21 @@ export default function DietPlanner() {
                     items={items}
                     isExpanded={expandedMeals.has(meal.id)}
                     onToggle={() => toggleMeal(meal.id)}
+                    onEditItem={handleEditClick}
+                    onDeleteItem={handleDeleteClick}
                   />
                 )
               })}
             </div>
           </div>
 
-          {/* Card do Nutricionista */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             className={cardStyles.sidebar}
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-full bg-gradient-to-br from-orange-400 to-amber-400">
+              <div className="p-2 rounded-full bg-gradient-to-br from-phoenix-400 to-phoenix-600">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -610,26 +717,35 @@ export default function DietPlanner() {
               </div>
             </div>
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30">
+              <div className="p-4 rounded-xl bg-gradient-to-br from-phoenix-100 to-phoenix-200 dark:from-phoenix-900/30 dark:to-phoenix-800/30">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-foreground">Calorias</span>
-                  <span className="font-bold text-orange-600 dark:text-orange-400">{dailyIntake?.total_kcal || 0} / {dailyIntake?.goal_kcal || 2000}</span>
+                  <span className="font-bold text-phoenix-600 dark:text-phoenix-400">{dailyIntake?.total_kcal || 0} / {dailyIntake?.goal_kcal || 2000}</span>
                 </div>
               </div>
               <Button
                 onClick={actions.recalculateGoals}
                 disabled={recalculating}
-                className="w-full bg-gradient-to-r from-orange-400 to-orange-600 dark:from-orange-500 dark:to-orange-700 text-white rounded-xl py-3 shadow-lg hover:shadow-xl transition-all"
+                className="w-full bg-gradient-to-r from-phoenix-500 to-phoenix-600 dark:from-phoenix-600 dark:to-phoenix-700 text-white rounded-xl py-3 shadow-lg hover:shadow-xl transition-all"
               >
                 <RefreshCw className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
-                {recalculating ? 'Recalculando...' : 'Recalcular Plano'}
+                {recalculating ? 'Recalculando...' : 'Recalcular Metas'}
               </Button>
             </div>
           </motion.div>
         </div>
       </div>
 
-      <AddFoodModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} onAddFood={actions.addFood} />
+      <FoodModal
+        open={isFoodModalOpen}
+        onOpenChange={(open) => {
+            setIsFoodModalOpen(open)
+            if (!open) setItemToEdit(null)
+        }}
+        onAddFood={handleAddFood}
+        onUpdateFood={handleUpdateFood}
+        itemToEdit={itemToEdit}
+      />
     </div>
   )
 }
