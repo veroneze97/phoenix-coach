@@ -33,22 +33,17 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 const COLORS = {
   phoenix: '#FF9F1C',
   gold: '#F5D68A',
-  protein: '#3B82F6', // Azul mais limpo
-  carbs: '#10B981',   // Verde mais limpo
-  fat: '#F97316',     // Laranja mais limpo
-  text: {
-    primary: '#0F172A',
-    secondary: '#475569',
-    muted: '#94A3B8',
-  }
+  protein: '#3B82F6',
+  carbs: '#10B981',
+  fat: '#F97316',
 }
 
-// Estilos de cartões para reutilização
+// Estilos de cartões para reutilização, com suporte a dark mode
 const cardStyles = {
-  main: "bg-white/80 backdrop-blur-xl border border-white/60 shadow-xl rounded-2xl p-8",
-  secondary: "bg-white/70 backdrop-blur-lg border border-white/50 shadow-lg rounded-xl p-6",
-  interactive: "bg-white/60 backdrop-blur-md border border-white/40 shadow-md rounded-xl p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer",
-  sidebar: "bg-white/90 backdrop-blur-xl border border-white/60 shadow-lg rounded-2xl p-6",
+  main: "bg-card/80 backdrop-blur-xl border border-border shadow-xl rounded-2xl p-8 dark:bg-gray-900/80",
+  secondary: "bg-card/70 backdrop-blur-lg border border-border shadow-lg rounded-xl p-6 dark:bg-gray-900/70",
+  interactive: "bg-card/60 backdrop-blur-md border border-border shadow-md rounded-xl p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer dark:bg-gray-800/60",
+  sidebar: "bg-card/90 backdrop-blur-xl border border-border shadow-lg rounded-2xl p-6 dark:bg-gray-900/90",
 }
 
 // Configurações das refeições com design unificado
@@ -78,7 +73,6 @@ const useDietData = (userId) => {
       const today = new Date().toISOString().split('T')[0]
       const sevenDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-      // Executa todas as chamadas em paralelo para melhor performance
       const [
         { data: intake },
         { data: adherence },
@@ -115,7 +109,7 @@ const useDietData = (userId) => {
       const { error } = await supabase.rpc('fn_calc_goals', { p_user_id: userId, p_date: today })
       if (error) throw error
       toast.success('Metas recalculadas com sucesso! 🔥')
-      await fetchAllData() // Recarrega os dados após o cálculo
+      await fetchAllData()
     } catch (error) {
       console.error('Error recalculating goals:', error)
       toast.error('Erro ao recalcular metas.')
@@ -143,7 +137,7 @@ const useDietData = (userId) => {
 
       if (error) throw error
       toast.success('Alimento adicionado! 🎉')
-      await fetchAllData() // Recarrega apenas os dados necessários
+      await fetchAllData()
     } catch (error) {
       console.error('Error adding food:', error)
       toast.error('Erro ao adicionar alimento.')
@@ -157,7 +151,7 @@ const useDietData = (userId) => {
 }
 
 // =================================================================
-// COMPONENTES MENORES E REUTILIZÁVEIS (Melhor organização)
+// COMPONENTES MENORES E REUTILIZÁVEIS
 // =================================================================
 
 // Componente para o Anel de Progresso Principal
@@ -165,24 +159,25 @@ const ProgressRing = memo(({ progress, label, message }) => (
   <div className="flex flex-col items-center">
     <div className="relative w-48 h-48 mb-6">
       <svg className="w-full h-full -rotate-90 transform">
-        <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="12" fill="none" className="text-gray-200" />
+        <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="12" fill="none" className="text-muted" />
         <motion.circle
-          cx="96" cy="96" r="88" stroke={COLORS.phoenix} strokeWidth="12" fill="none"
+          cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="12" fill="none"
           strokeLinecap="round"
           strokeDasharray={`${2 * Math.PI * 88}`}
           initial={{ strokeDashoffset: 2 * Math.PI * 88 }}
           animate={{ strokeDashoffset: 2 * Math.PI * 88 * (1 - Math.min(progress / 100, 1)) }}
           transition={{ duration: 1.5, ease: "easeOut" }}
+          className="text-orange-500 dark:text-orange-400"
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <motion.span key={progress} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-5xl font-bold" style={{ color: COLORS.phoenix }}>
+        <motion.span key={progress} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-5xl font-bold text-foreground">
           {Math.round(progress)}%
         </motion.span>
         <span className="text-sm text-muted-foreground mt-1 font-medium">{label}</span>
       </div>
     </div>
-    <motion.p key={progress} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center text-lg font-medium text-center max-w-sm" style={{ color: COLORS.phoenix }}>
+    <motion.p key={progress} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center text-lg font-medium text-center max-w-sm text-orange-600 dark:text-orange-400">
       {message}
     </motion.p>
   </div>
@@ -199,13 +194,13 @@ const MacroBars = memo(({ macros }) => (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Icon className="w-5 h-5" style={{ color: macro.color }} />
-              <span className="text-sm font-semibold text-secondary">{macro.label}</span>
+              <span className="text-sm font-semibold text-muted-foreground">{macro.label}</span>
             </div>
             <span className="text-sm font-bold" style={{ color: macro.color }}>
               {macro.current} / {macro.goal} {macro.unit}
             </span>
           </div>
-          <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+          <div className="relative h-3 bg-muted rounded-full overflow-hidden">
             <motion.div className={`h-full bg-gradient-to-r ${macro.gradient}`} style={{ backgroundColor: macro.color }} initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 1, delay: 0.3 + index * 0.1, ease: "easeOut" }} />
           </div>
         </motion.div>
@@ -220,14 +215,14 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onAddClick }) 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 * MEALS.indexOf(meal) }}>
       <Card className={`${cardStyles.interactive} relative overflow-hidden`} onClick={onToggle}>
-        <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-phoenix-400 to-phoenix-600" />
+        <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-orange-400 to-orange-600" />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className={`p-3 rounded-full bg-gradient-to-br ${meal.gradient} shadow-md`}>
               <Icon className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-lg flex items-center gap-2">
+              <h3 className="font-bold text-lg flex items-center gap-2 text-foreground">
                 <span>{meal.emoji}</span> {meal.name}
               </h3>
               <p className="text-sm text-muted-foreground">{data?.total_kcal || 0} kcal</p>
@@ -235,11 +230,11 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onAddClick }) 
           </div>
           <div className="flex items-center gap-3">
             <div className="text-xs text-muted-foreground hidden sm:flex gap-3 font-medium">
-              <span style={{ color: COLORS.carbs }}>C: {data?.total_carbs_g || 0}g</span>
-              <span style={{ color: COLORS.protein }}>P: {data?.total_protein_g || 0}g</span>
-              <span style={{ color: COLORS.fat }}>G: {data?.total_fat_g || 0}g</span>
+              <span className="text-green-600 dark:text-green-400">C: {data?.total_carbs_g || 0}g</span>
+              <span className="text-blue-600 dark:text-blue-400">P: {data?.total_protein_g || 0}g</span>
+              <span className="text-orange-600 dark:text-orange-400">G: {data?.total_fat_g || 0}g</span>
             </div>
-            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            {isExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
           </div>
         </div>
 
@@ -250,8 +245,8 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onAddClick }) 
                 {items.length > 0 ? items.map((item) => (
                   <div key={item.id} className="p-3 rounded-lg bg-accent/50">
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium">{item.food_name}</span>
-                      <span className="font-semibold">{item.item_kcal} kcal</span>
+                      <span className="font-medium text-foreground">{item.food_name}</span>
+                      <span className="font-semibold text-foreground">{item.item_kcal} kcal</span>
                     </div>
                   </div>
                 )) : <p className="text-sm text-muted-foreground text-center py-2">Nenhum alimento adicionado.</p>}
@@ -285,17 +280,16 @@ const AddFoodModal = memo(({ open, onOpenChange, onAddFood }) => {
     await onAddFood({ selectedMealType, selectedFood, quantity })
     setIsAdding(false)
     onOpenChange(false)
-    // Reset form
     setFoodSearch(''); setSelectedFood(null); setQuantity(''); setFoodResults([])
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg backdrop-blur-xl bg-white/95 rounded-2xl">
-        <DialogHeader><DialogTitle className="text-2xl font-bold">Adicionar Alimento</DialogTitle></DialogHeader>
+      <DialogContent className="sm:max-w-lg backdrop-blur-xl bg-background/95 rounded-2xl">
+        <DialogHeader><DialogTitle className="text-2xl font-bold text-foreground">Adicionar Alimento</DialogTitle></DialogHeader>
         <div className="space-y-6">
           <div>
-            <Label className="text-sm font-semibold">Para qual refeição?</Label>
+            <Label className="text-sm font-semibold text-foreground">Para qual refeição?</Label>
             <div className="grid grid-cols-2 gap-3 mt-2">
               {MEALS.map(meal => (
                 <Button key={meal.id} variant={selectedMealType === meal.id ? "default" : "outline"} size="sm" onClick={() => setSelectedMealType(meal.id)} className={`rounded-xl py-3 transition-all ${selectedMealType === meal.id ? `bg-gradient-to-r ${meal.gradient} shadow-lg` : ''}`}>
@@ -305,7 +299,7 @@ const AddFoodModal = memo(({ open, onOpenChange, onAddFood }) => {
             </div>
           </div>
           <div>
-            <Label className="text-sm font-semibold">Buscar Alimento</Label>
+            <Label className="text-sm font-semibold text-foreground">Buscar Alimento</Label>
             <div className="relative mt-2">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Ex: Frango, Arroz..." value={foodSearch} onChange={(e) => { setFoodSearch(e.target.value); searchFoods(e.target.value) }} className="pl-10 h-11 rounded-lg" />
@@ -314,7 +308,7 @@ const AddFoodModal = memo(({ open, onOpenChange, onAddFood }) => {
               <div className="mt-2 max-h-48 overflow-y-auto border rounded-lg p-2 bg-accent/30">
                 {foodResults.map(food => (
                   <div key={food.id} onClick={() => { setSelectedFood(food); setFoodSearch(food.name); setFoodResults([]) }} className="p-3 rounded-md hover:bg-accent cursor-pointer transition-colors">
-                    <p className="font-medium">{food.name}</p>
+                    <p className="font-medium text-foreground">{food.name}</p>
                     <p className="text-xs text-muted-foreground">{food.kcal_per_100g} kcal / 100g</p>
                   </div>
                 ))}
@@ -322,14 +316,14 @@ const AddFoodModal = memo(({ open, onOpenChange, onAddFood }) => {
             )}
           </div>
           <div>
-            <Label className="text-sm font-semibold">Quantidade</Label>
+            <Label className="text-sm font-semibold text-foreground">Quantidade</Label>
             <Input type="number" placeholder="Ex: 150" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="mt-2 h-11 rounded-lg" />
             {selectedFood && quantity && <p className="text-xs text-muted-foreground mt-1">Total: ~{Math.round((parseFloat(quantity) || 0) * (selectedFood.grams_per_unit || 1))}g</p>}
           </div>
         </div>
         <div className="flex gap-3 mt-6">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 h-11 rounded-lg">Cancelar</Button>
-          <Button onClick={handleAdd} disabled={!selectedFood || !quantity || isAdding} className="flex-1 h-11 rounded-lg bg-gradient-to-r from-phoenix-400 to-phoenix-600 shadow-lg hover:shadow-xl transition-all">
+          <Button onClick={handleAdd} disabled={!selectedFood || !quantity || isAdding} className="flex-1 h-11 rounded-lg bg-gradient-to-r from-orange-400 to-orange-600 shadow-lg hover:shadow-xl transition-all">
             {isAdding ? 'Adicionando...' : 'Adicionar Alimento'}
           </Button>
         </div>
@@ -340,7 +334,7 @@ const AddFoodModal = memo(({ open, onOpenChange, onAddFood }) => {
 
 
 // =================================================================
-// COMPONENTE PRINCIPAL (Agora limpo e focado em organizar a UI)
+// COMPONENTE PRINCIPAL
 // =================================================================
 export default function DietPlanner() {
   const { user } = useAuth()
@@ -349,11 +343,10 @@ export default function DietPlanner() {
   const [expandedMeals, setExpandedMeals] = useState(new Set())
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
-  // Memoização para evitar re-cálculos em cada renderização
   const calorieProgress = useMemo(() => dailyIntake ? ((dailyIntake.total_kcal || 0) / (dailyIntake.goal_kcal || 2000)) * 100 : 0, [dailyIntake])
   
   const macroBarsData = useMemo(() => [
-    { label: 'Calorias', icon: Flame, current: dailyIntake?.total_kcal || 0, goal: dailyIntake?.goal_kcal || 2000, unit: 'kcal', color: COLORS.phoenix, gradient: 'from-phoenix-400 to-amber-400' },
+    { label: 'Calorias', icon: Flame, current: dailyIntake?.total_kcal || 0, goal: dailyIntake?.goal_kcal || 2000, unit: 'kcal', color: COLORS.phoenix, gradient: 'from-orange-400 to-amber-400' },
     { label: 'Proteínas', icon: Activity, current: dailyIntake?.total_protein_g || 0, goal: dailyIntake?.goal_protein_g || 150, unit: 'g', color: COLORS.protein, gradient: 'from-blue-400 to-blue-600' },
     { label: 'Carboidratos', icon: Target, current: dailyIntake?.total_carbs_g || 0, goal: dailyIntake?.goal_carbs_g || 250, unit: 'g', color: COLORS.carbs, gradient: 'from-green-400 to-green-600' },
     { label: 'Gorduras', icon: Sparkles, current: dailyIntake?.total_fat_g || 0, goal: dailyIntake?.goal_fat_g || 65, unit: 'g', color: COLORS.fat, gradient: 'from-orange-400 to-red-500' },
@@ -385,34 +378,35 @@ export default function DietPlanner() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
-          <Flame className="w-12 h-12 text-phoenix-500" />
+          <Flame className="w-12 h-12 text-orange-500" />
         </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 max-w-7xl mx-auto px-6 lg:px-8 py-8">
+    // CORREÇÃO 1: Container principal agora usa max-w-screen-2xl para telas ultra-largas
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-background to-blue-50 dark:from-gray-950 dark:via-background dark:to-gray-900 max-w-screen-2xl mx-auto px-6 lg:px-8 py-8">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-10">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-phoenix-500 to-amber-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
             Nutrição
           </h1>
           <p className="text-lg text-muted-foreground mt-1">
             {new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}
           </p>
         </div>
-        <Button onClick={actions.recalculateGoals} disabled={recalculating} className="bg-white/80 backdrop-blur-md border border-white/70 shadow-lg hover:shadow-xl transition-all rounded-xl px-6 py-3 h-auto">
+        <Button onClick={actions.recalculateGoals} disabled={recalculating} className="bg-background/80 backdrop-blur-md border border-border shadow-lg hover:shadow-xl transition-all rounded-xl px-6 py-3 h-auto">
           <RefreshCw className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
           Recalcular Metas
         </Button>
       </motion.div>
 
-      {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* Coluna Principal (2/3) */}
-        <div className="xl:col-span-2 space-y-8">
+      {/* CORREÇÃO 2: Grid principal agora se reorganiza em telas ultra-largas (2xl) */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 2xl:grid-cols-12 gap-8">
+        {/* Coluna Principal (2/3 no xl, 8/12 no 2xl) */}
+        <div className="xl:col-span-2 2xl:col-span-8 space-y-8">
           {/* Card de Progresso Principal */}
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={cardStyles.main}>
             <ProgressRing progress={calorieProgress} label="Do seu objetivo" message={getMotivationalMessage(calorieProgress)} />
@@ -422,16 +416,16 @@ export default function DietPlanner() {
           {/* Card de Análise Semanal */}
           {weeklySummary.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={cardStyles.secondary}>
-              <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                <Calendar className="w-6 h-6 text-phoenix-500" />
+              <h3 className="text-2xl font-bold mb-6 flex items-center gap-3 text-foreground">
+                <Calendar className="w-6 h-6 text-orange-500" />
                 Análise Semanal
               </h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={weeklyChartData}>
-                    <XAxis dataKey="date" stroke={COLORS.text.muted} fontSize={12} />
-                    <YAxis stroke={COLORS.text.muted} fontSize={12} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
-                    <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: 'none', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
+                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
+                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
                     <Line type="monotone" dataKey="adherence" stroke={COLORS.phoenix} strokeWidth={3} dot={{ fill: COLORS.phoenix, r: 5 }} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -440,13 +434,13 @@ export default function DietPlanner() {
           )}
         </div>
 
-        {/* Coluna Lateral (1/3) */}
-        <div className="xl:col-span-1 space-y-8">
+        {/* Coluna Lateral (1/3 no xl, 4/12 no 2xl) */}
+        <div className="xl:col-span-1 2xl:col-span-4 space-y-8">
           {/* Seção de Refeições */}
           <div>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Refeições de Hoje</h2>
-              <Button onClick={() => setIsAddModalOpen(true)} className="bg-gradient-to-r from-phoenix-400 to-phoenix-600 text-white rounded-xl px-5 py-2.5 shadow-lg hover:shadow-xl transition-all">
+              <h2 className="text-2xl font-bold text-foreground">Refeições de Hoje</h2>
+              <Button onClick={() => setIsAddModalOpen(true)} className="bg-gradient-to-r from-orange-400 to-orange-600 text-white rounded-xl px-5 py-2.5 shadow-lg hover:shadow-xl transition-all">
                 <Plus className="w-5 h-5 mr-2" /> Adicionar
               </Button>
             </div>
@@ -472,22 +466,22 @@ export default function DietPlanner() {
           {/* Card do Nutricionista */}
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className={cardStyles.sidebar}>
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-full bg-gradient-to-br from-phoenix-400 to-amber-400">
+              <div className="p-2 rounded-full bg-gradient-to-br from-orange-400 to-amber-400">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-xl">Nutricionista Phoenix</h3>
+                <h3 className="font-bold text-xl text-foreground">Nutricionista Phoenix</h3>
                 <p className="text-sm text-muted-foreground">Plano otimizado!</p>
               </div>
             </div>
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-gradient-to-br from-phoenix-100 to-amber-100">
+              <div className="p-4 rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold">Calorias</span>
-                  <span className="font-bold text-phoenix-600">{dailyIntake?.total_kcal || 0} / {dailyIntake?.goal_kcal || 2000}</span>
+                  <span className="font-semibold text-foreground">Calorias</span>
+                  <span className="font-bold text-orange-600 dark:text-orange-400">{dailyIntake?.total_kcal || 0} / {dailyIntake?.goal_kcal || 2000}</span>
                 </div>
               </div>
-              <Button onClick={actions.recalculateGoals} disabled={recalculating} className="w-full bg-gradient-to-r from-phoenix-400 to-phoenix-600 text-white rounded-xl py-3 shadow-lg hover:shadow-xl transition-all">
+              <Button onClick={actions.recalculateGoals} disabled={recalculating} className="w-full bg-gradient-to-r from-orange-400 to-orange-600 text-white rounded-xl py-3 shadow-lg hover:shadow-xl transition-all">
                 <RefreshCw className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
                 {recalculating ? 'Recalculando...' : 'Recalcular Plano'}
               </Button>
