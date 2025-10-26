@@ -25,15 +25,17 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
-  Edit2, // Importado
-  Trash2, // Importado
+  Edit2,
+  Trash2,
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 // --- DESIGN SYSTEM TOKENS ---
+// NOTA: Este objeto agora é menos necessário, pois usamos classes Tailwind.
+// Mantido para compatibilidade, mas pode ser refatorado no futuro.
 const COLORS = {
-  phoenix: '#FF9F1C',
-  gold: '#F5D68A',
+  phoenix: 'hsl(var(--phoenix-500))',
+  gold: 'hsl(var(--phoenix-600))',
   protein: '#3B82F6',
   carbs: '#10B981',
   fat: '#F97316',
@@ -48,10 +50,10 @@ const cardStyles = {
 }
 
 const MEALS = [
-  { id: 'breakfast', name: 'Café da Manhã', icon: Coffee, emoji: '☀️', gradient: 'from-yellow-400 to-amber-400' },
-  { id: 'lunch', name: 'Almoço', icon: Sun, emoji: '🌞', gradient: 'from-amber-400 to-orange-400' },
-  { id: 'dinner', name: 'Jantar', icon: Sunset, emoji: '🌙', gradient: 'from-indigo-400 to-blue-400' },
-  { id: 'snacks', name: 'Lanches', icon: Cookie, emoji: '🍪', gradient: 'from-orange-400 to-red-400' },
+  { id: 'breakfast', name: 'Café da Manhã', icon: Coffee, emoji: '☀️', gradient: 'from-phoenix-400 to-phoenix-500' },
+  { id: 'lunch', name: 'Almoço', icon: Sun, emoji: '🌞', gradient: 'from-phoenix-500 to-phoenix-600' },
+  { id: 'dinner', name: 'Jantar', icon: Sunset, emoji: '🌙', gradient: 'from-blue-400 to-blue-600' },
+  { id: 'snacks', name: 'Lanches', icon: Cookie, emoji: '🍪', gradient: 'from-phoenix-400 to-red-500' },
 ]
 
 // =================================================================
@@ -325,7 +327,7 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onEditItem, on
             <div className="text-xs text-muted-foreground hidden sm:flex gap-3 font-medium">
               <span className="text-green-600 dark:text-green-400">C: {data?.total_carbs_g || 0}g</span>
               <span className="text-blue-600 dark:text-blue-400">P: {data?.total_protein_g || 0}g</span>
-              <span className="text-orange-600 dark:text-orange-400">G: {data?.total_fat_g || 0}g</span>
+              <span className="text-phoenix-600 dark:text-phoenix-400">G: {data?.total_fat_g || 0}g</span>
             </div>
             {isExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
           </div>
@@ -544,7 +546,7 @@ export default function DietPlanner() {
     { label: 'Calorias', icon: Flame, current: dailyIntake?.total_kcal || 0, goal: dailyIntake?.goal_kcal || 2000, unit: 'kcal', color: COLORS.phoenix, gradient: 'from-phoenix-400 to-phoenix-600' },
     { label: 'Proteínas', icon: Activity, current: dailyIntake?.total_protein_g || 0, goal: dailyIntake?.goal_protein_g || 150, unit: 'g', color: COLORS.protein, gradient: 'from-blue-400 to-blue-600' },
     { label: 'Carboidratos', icon: Target, current: dailyIntake?.total_carbs_g || 0, goal: dailyIntake?.goal_carbs_g || 250, unit: 'g', color: COLORS.carbs, gradient: 'from-green-400 to-green-600' },
-    { label: 'Gorduras', icon: Sparkles, current: dailyIntake?.total_fat_g || 0, goal: dailyIntake?.goal_fat_g || 65, unit: 'g', color: COLORS.fat, gradient: 'from-orange-400 to-red-500' },
+    { label: 'Gorduras', icon: Sparkles, current: dailyIntake?.total_fat_g || 0, goal: dailyIntake?.goal_fat_g || 65, unit: 'g', color: COLORS.fat, gradient: 'from-phoenix-400 to-red-500' },
   ], [dailyIntake])
 
   const weeklyChartData = useMemo(() => weeklySummary.map(day => ({
@@ -605,151 +607,151 @@ export default function DietPlanner() {
 
   return (
     <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
-      <div className="max-w-screen-xl mx-auto">
+      <div className="max-w-screen-2xl mx-auto">
         <div className="min-h-screen bg-gradient-to-br from-orange-50 via-background to-blue-50 dark:from-gray-950 dark:via-background dark:to-gray-900 rounded-3xl p-6 lg:p-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between mb-10"
-      >
-        <div>
-          <h1 className="text-fluid-h1 font-bold tracking-tight bg-gradient-to-r from-phoenix-500 to-phoenix-600 bg-clip-text text-transparent">
-            Nutrição
-          </h1>
-          <p className="text-lg text-muted-foreground mt-1">
-            {new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}
-          </p>
-        </div>
-        <Button
-          onClick={actions.fetchAllData}
-          disabled={loading}
-          className="bg-background/80 backdrop-blur-md border border-border shadow-lg hover:shadow-xl transition-all rounded-xl px-6 py-3 h-auto"
-        >
-          <RefreshCw className={`w-5 h-5 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Atualizar Dados
-        </Button>
-      </motion.div>
-
-      {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-fluid">
-        {/* Coluna Principal (2/3) */}
-        <div className="xl:col-span-2 space-y-fluid">
+          {/* Header */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={cardStyles.main}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between mb-10"
           >
-            <ProgressRing
-              progress={calorieProgress}
-              label="Do seu objetivo"
-              message={getMotivationalMessage(calorieProgress)}
-            />
-            <MacroBars macros={macroBarsData} />
+            <div>
+              <h1 className="text-fluid-h1 font-bold tracking-tight bg-gradient-to-r from-phoenix-500 to-phoenix-600 bg-clip-text text-transparent">
+                Nutrição
+              </h1>
+              <p className="text-lg text-muted-foreground mt-1">
+                {new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}
+              </p>
+            </div>
+            <Button
+              onClick={actions.fetchAllData}
+              disabled={loading}
+              className="bg-background/80 backdrop-blur-md border border-border shadow-lg hover:shadow-xl transition-all rounded-xl px-6 py-3 h-auto"
+            >
+              <RefreshCw className={`w-5 h-5 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar Dados
+            </Button>
           </motion.div>
 
-          {weeklySummary.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cardStyles.secondary}
-            >
-              <h3 className="text-fluid-h2 font-bold mb-6 flex items-center gap-3 text-foreground">
-                <Calendar className="w-6 h-6 text-phoenix-500" />
-                Análise Semanal
-              </h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={weeklyChartData}>
-                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
-                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '12px' }} />
-                    <Line type="monotone" dataKey="adherence" stroke={COLORS.phoenix} strokeWidth={3} dot={{ fill: COLORS.phoenix, r: 5 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </motion.div>
-          )}
-        </div>
-      </div>
-    </div>
-
-        {/* Coluna Lateral (1/3) */}
-        <div className="xl:col-span-1 space-y-fluid">
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-fluid-h2 font-bold text-foreground">Refeições de Hoje</h2>
-              <Button
-                onClick={() => setIsFoodModalOpen(true)}
-                className="bg-gradient-to-r from-phoenix-500 to-phoenix-600 text-white rounded-xl px-5 py-2.5 shadow-lg hover:shadow-xl transition-all"
+          {/* Main Grid Layout */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
+            {/* Coluna Principal (2/3) */}
+            <div className="xl:col-span-2 space-y-6 lg:space-y-8">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={cardStyles.main}
               >
-                <Plus className="w-5 h-5 mr-2" /> Adicionar
-              </Button>
+                <ProgressRing
+                  progress={calorieProgress}
+                  label="Do seu objetivo"
+                  message={getMotivationalMessage(calorieProgress)}
+                />
+                <MacroBars macros={macroBarsData} />
+              </motion.div>
+
+              {weeklySummary.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cardStyles.secondary}
+                >
+                  <h3 className="text-fluid-h2 font-bold mb-6 flex items-center gap-3 text-foreground">
+                    <Calendar className="w-6 h-6 text-phoenix-500" />
+                    Análise Semanal
+                  </h3>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={weeklyChartData}>
+                        <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
+                        <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '12px' }} />
+                        <Line type="monotone" dataKey="adherence" stroke={COLORS.phoenix} strokeWidth={3} dot={{ fill: COLORS.phoenix, r: 5 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </motion.div>
+              )}
             </div>
-            <div className="space-y-4">
-              {MEALS.map(meal => {
-                const data = mealTotals.find(m => m.meal_type === meal.id)
-                const items = mealItems.filter(item => item.meal_type === meal.id)
-                return (
-                  <MealCard
-                    key={meal.id}
-                    meal={meal}
-                    data={data}
-                    items={items}
-                    isExpanded={expandedMeals.has(meal.id)}
-                    onToggle={() => toggleMeal(meal.id)}
-                    onEditItem={handleEditClick}
-                    onDeleteItem={handleDeleteClick}
-                  />
-                )
-              })}
+
+            {/* Coluna Lateral (1/3) */}
+            <div className="xl:col-span-1 space-y-6 lg:space-y-8">
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-fluid-h2 font-bold text-foreground">Refeições de Hoje</h2>
+                  <Button
+                    onClick={() => setIsFoodModalOpen(true)}
+                    className="bg-gradient-to-r from-phoenix-500 to-phoenix-600 text-white rounded-xl px-5 py-2.5 shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <Plus className="w-5 h-5 mr-2" /> Adicionar
+                  </Button>
+                </div>
+                <div className="space-y-4">
+                  {MEALS.map(meal => {
+                    const data = mealTotals.find(m => m.meal_type === meal.id)
+                    const items = mealItems.filter(item => item.meal_type === meal.id)
+                    return (
+                      <MealCard
+                        key={meal.id}
+                        meal={meal}
+                        data={data}
+                        items={items}
+                        isExpanded={expandedMeals.has(meal.id)}
+                        onToggle={() => toggleMeal(meal.id)}
+                        onEditItem={handleEditClick}
+                        onDeleteItem={handleDeleteClick}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className={cardStyles.sidebar}
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 rounded-full bg-gradient-to-br from-phoenix-400 to-phoenix-500">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl text-foreground">Nutricionista Phoenix</h3>
+                    <p className="text-sm text-muted-foreground">Plano otimizado!</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-phoenix-100 to-phoenix-200 dark:from-phoenix-900/30 dark:to-phoenix-800/30">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-foreground">Calorias</span>
+                      <span className="font-bold text-phoenix-600 dark:text-phoenix-400">{dailyIntake?.total_kcal || 0} / {dailyIntake?.goal_kcal || 2000}</span>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={actions.recalculateGoals}
+                    disabled={recalculating}
+                    className="w-full bg-gradient-to-r from-phoenix-500 to-phoenix-600 dark:from-phoenix-600 dark:to-phoenix-700 text-white rounded-xl py-3 shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <RefreshCw className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
+                    {recalculating ? 'Recalculando...' : 'Recalcular Metas'}
+                  </Button>
+                </div>
+              </motion.div>
             </div>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className={cardStyles.sidebar}
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-full bg-gradient-to-br from-phoenix-400 to-phoenix-600">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="font-bold text-xl text-foreground">Nutricionista Phoenix</h3>
-                <p className="text-sm text-muted-foreground">Plano otimizado!</p>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-gradient-to-br from-phoenix-100 to-phoenix-200 dark:from-phoenix-900/30 dark:to-phoenix-800/30">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-foreground">Calorias</span>
-                  <span className="font-bold text-phoenix-600 dark:text-phoenix-400">{dailyIntake?.total_kcal || 0} / {dailyIntake?.goal_kcal || 2000}</span>
-                </div>
-              </div>
-              <Button
-                onClick={actions.recalculateGoals}
-                disabled={recalculating}
-                className="w-full bg-gradient-to-r from-phoenix-500 to-phoenix-600 dark:from-phoenix-600 dark:to-phoenix-700 text-white rounded-xl py-3 shadow-lg hover:shadow-xl transition-all"
-              >
-                <RefreshCw className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
-                {recalculating ? 'Recalculando...' : 'Recalcular Metas'}
-              </Button>
-            </div>
-          </motion.div>
+          <FoodModal
+            open={isFoodModalOpen}
+            onOpenChange={(open) => {
+                setIsFoodModalOpen(open)
+                if (!open) setItemToEdit(null)
+            }}
+            onAddFood={handleAddFood}
+            onUpdateFood={handleUpdateFood}
+            itemToEdit={itemToEdit}
+          />
         </div>
       </div>
-
-      <FoodModal
-        open={isFoodModalOpen}
-        onOpenChange={(open) => {
-            setIsFoodModalOpen(open)
-            if (!open) setItemToEdit(null)
-        }}
-        onAddFood={handleAddFood}
-        onUpdateFood={handleUpdateFood}
-        itemToEdit={itemToEdit}
-      />
     </div>
   )
 }

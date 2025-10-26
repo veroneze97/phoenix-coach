@@ -55,19 +55,23 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // --- SUAS CORES PHOENIX (APRIMORADAS) ---
+        // --- SUAS CORES PHOENIX (INTEGRADAS COM CSS) ---
         phoenix: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b', // Cor principal (DEFAULT)
-          600: '#d97706',
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f',
-          DEFAULT: '#f59e0b', // Agora `bg-phoenix` usa esta cor
+          DEFAULT: 'hsl(var(--phoenix-500))',
+          50: 'hsl(var(--phoenix-50))',
+          100: 'hsl(var(--phoenix-100))',
+          200: 'hsl(var(--phoenix-200))',
+          300: 'hsl(var(--phoenix-300))',
+          400: 'hsl(var(--phoenix-400))',
+          500: 'hsl(var(--phoenix-500))',
+          600: 'hsl(var(--phoenix-600))',
+          700: 'hsl(var(--phoenix-700))',
+          800: 'hsl(var(--phoenix-800))',
+          900: 'hsl(var(--phoenix-900))',
+          // Mantive as antigas para compatibilidade, mas agora elas apontam para as novas
+          amber: 'hsl(var(--phoenix-500))',
+          gold: 'hsl(var(--phoenix-600))',
+          light: 'hsl(var(--phoenix-400))',
         },
       },
       // --- SUAS CONFIGURAÇÕES FLUIDAS ---

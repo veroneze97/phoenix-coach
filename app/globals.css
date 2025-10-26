@@ -25,10 +25,17 @@
     --ring: 38 100% 50%;
     --radius: 1.25rem;
 
-    /* Phoenix Colors */
-    --phoenix-amber: 38 100% 50%;
-    --phoenix-gold: 33 93% 44%;
-    --phoenix-light: 43 100% 62%;
+    /* --- PALETA DE CORES PHOENIX (FONTE DA VERDADE) --- */
+    --phoenix-50: 45 100% 98%;
+    --phoenix-100: 43 100% 94%;
+    --phoenix-200: 41 98% 84%;
+    --phoenix-300: 39 96% 71%;
+    --phoenix-400: 38 95% 58%;
+    --phoenix-500: 38 100% 50%; /* Sua cor principal */
+    --phoenix-600: 33 93% 44%;
+    --phoenix-700: 28 85% 39%;
+    --phoenix-800: 24 70% 33%;
+    --phoenix-900: 21 63% 28%;
   }
 
   .dark {
@@ -98,14 +105,14 @@
     border-radius: var(--radius);
   }
 
-  /* Phoenix gradient */
+  /* Phoenix gradient - ATUALIZADO */
   .phoenix-gradient {
-    @apply bg-gradient-to-r from-phoenix-amber to-phoenix-gold;
+    @apply bg-gradient-to-r from-phoenix-500 to-phoenix-600;
   }
 
-  /* Text gradient */
+  /* Text gradient - ATUALIZADO */
   .text-gradient {
-    @apply bg-gradient-to-r from-phoenix-amber to-phoenix-gold bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-phoenix-500 to-phoenix-600 bg-clip-text text-transparent;
   }
 
   /* Smooth transitions */
