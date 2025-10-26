@@ -64,10 +64,13 @@ export default function App() {
   // Active tab
   const [activeTab, setActiveTab] = useState('home')
 
+  // --- NOTA: As funções loadTodayCheck e loadWeekStats foram comentadas para evitar erros 404 no console.
+  // Para que a página Home funcione completamente, execute os scripts SQL fornecidos no seu Supabase
+  // para criar a tabela 'checks' e a view 'v_weekly_summary'.
   useEffect(() => {
     if (user && profile) {
-      loadTodayCheck()
-      loadWeekStats()
+      // loadTodayCheck()
+      // loadWeekStats()
     }
   }, [user, profile])
 
@@ -120,22 +123,11 @@ export default function App() {
 
   const calculatePhoenixScore = () => {
     let score = 0
-    
-    // Water (0-25 points)
     score += Math.min((water / 2500) * 25, 25)
-    
-    // Steps (0-25 points)
     score += Math.min((steps / 10000) * 25, 25)
-    
-    // Sleep (0-25 points)
     score += Math.min((sleep / 480) * 25, 25)
-    
-    // Training (0-15 points)
     score += trainingDone ? 15 : 0
-    
-    // Diet (0-10 points)
     score += dietAdherence
-    
     setPhoenixScore(Math.round(score))
   }
 
@@ -220,7 +212,6 @@ export default function App() {
         setAuthLoading(false)
       } else {
         toast.success('Perfil configurado! 🎉')
-        // Wait a bit for Supabase to sync, then reload
         setTimeout(() => {
           window.location.reload()
         }, 500)
@@ -237,44 +228,44 @@ export default function App() {
       return {
         title: '🔥 Lendário!',
         message: 'Você está no seu auge! Continue assim, campeão.',
-        color: 'text-phoenix-amber'
+        color: 'text-phoenix-600'
       }
     } else if (phoenixScore >= 70) {
       return {
         title: '⭐ Excelente!',
         message: 'Ótimo trabalho! Você está no caminho certo.',
-        color: 'text-green-500'
+        color: 'text-green-600'
       }
     } else if (phoenixScore >= 50) {
       return {
         title: '💪 Bom trabalho!',
         message: 'Continue assim. Pequenos passos levam a grandes resultados.',
-        color: 'text-blue-500'
+        color: 'text-blue-600'
       }
     } else if (phoenixScore >= 30) {
       return {
         title: '🌱 Começando!',
         message: 'Todo grande jornada começa com um passo. Você consegue!',
-        color: 'text-yellow-500'
+        color: 'text-yellow-600'
       }
     } else {
       return {
         title: '🌅 Hora de renascer!',
         message: 'Como a Fênix, você pode se erguer. Comece agora!',
-        color: 'text-orange-500'
+        color: 'text-orange-600'
       }
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-zinc-900 dark:via-zinc-800 dark:to-zinc-900">
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <Flame className="w-16 h-16 text-phoenix-amber mx-auto mb-4 animate-pulse" />
+          <Flame className="w-16 h-16 text-phoenix-500 mx-auto mb-4 animate-pulse" />
           <p className="text-lg text-muted-foreground">Carregando...</p>
         </motion.div>
       </div>
@@ -284,22 +275,22 @@ export default function App() {
   // Auth screen
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary to-background p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-zinc-900 dark:via-zinc-800 dark:to-zinc-900 p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <Card className="glass-card border-phoenix-amber/20">
+          <Card className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl">
             <CardHeader className="text-center">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                <Flame className="w-16 h-16 text-phoenix-amber mx-auto mb-4" />
+                <Flame className="w-16 h-16 text-phoenix-500 mx-auto mb-4" />
               </motion.div>
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-phoenix-amber to-phoenix-gold bg-clip-text text-transparent">
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-phoenix-500 to-phoenix-600 bg-clip-text text-transparent">
                 Phoenix Coach
               </CardTitle>
               <CardDescription>Renasça mais forte a cada dia</CardDescription>
@@ -323,7 +314,7 @@ export default function App() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="•••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -332,7 +323,7 @@ export default function App() {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full rounded-lg bg-gradient-to-r from-phoenix-amber to-phoenix-gold"
+                  className="w-full rounded-lg bg-gradient-to-r from-phoenix-500 to-phoenix-600"
                   disabled={authLoading}
                 >
                   {authLoading ? 'Aguarde...' : isSignUp ? 'Criar Conta' : 'Entrar'}
@@ -382,15 +373,15 @@ export default function App() {
   // Profile setup screen
   if (user && (!profile || !profile.name || !profile.height_cm)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-zinc-900 dark:via-zinc-800 dark:to-zinc-900 p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <Card className="glass-card">
+          <Card className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl">
             <CardHeader className="text-center">
-              <Flame className="w-12 h-12 text-phoenix-amber mx-auto mb-2" />
+              <Flame className="w-12 h-12 text-phoenix-500 mx-auto mb-2" />
               <CardTitle>Complete seu Perfil</CardTitle>
               <CardDescription>Vamos conhecer você melhor</CardDescription>
             </CardHeader>
@@ -457,7 +448,7 @@ export default function App() {
 
               <Button
                 onClick={handleProfileSetup}
-                className="w-full rounded-lg bg-gradient-to-r from-phoenix-amber to-phoenix-gold"
+                className="w-full rounded-lg bg-gradient-to-r from-phoenix-500 to-phoenix-600"
               >
                 Começar Jornada
               </Button>
@@ -472,381 +463,428 @@ export default function App() {
 
   // Main app
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background">
-      {/* Header */}
-      <header className="glass sticky top-0 z-50 border-b">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Flame className="w-6 h-6 text-phoenix-amber" />
-            <h1 className="font-bold text-lg">Phoenix Coach</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Olá, {profile?.name || 'Atleta'}!</span>
-          </div>
-        </div>
-      </header>
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Fundo premium consistente com a página de dieta */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-zinc-900 dark:via-zinc-800 dark:to-zinc-900" />
+      
+      <div className="relative z-20 w-full px-6 sm:px-8 lg:px-12 py-8 pointer-events-auto">
+        <div className="max-w-screen-2xl mx-auto">
+          <motion.header
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-12 text-center sm:text-left"
+          >
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-foreground mb-2">
+              Dashboard
+            </h1>
+            <p className="text-lg sm:text-xl text-muted-foreground font-light">
+              Bem-vindo de volta, {profile?.name || 'Atleta'}!
+            </p>
+          </motion.header>
 
-      {/* Content */}
-      <main className="w-full">
-        <AnimatePresence mode="wait">
-          {activeTab === 'home' && (
-            <motion.div
-              key="home"
-              {...animationConfig.tabTransition}
-              className="container mx-auto px-4 py-6 max-w-2xl safe-bottom space-y-6"
-            >
-              {/* Phoenix Score */}
-              <Card className="glass-card border-phoenix-amber/30">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-2xl">Score Phoenix</CardTitle>
-                      <CardDescription>Seu desempenho hoje</CardDescription>
-                    </div>
-                    <motion.div
-                      animate={{ rotate: phoenixScore > 70 ? [0, 10, -10, 0] : 0 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <Flame className={`w-12 h-12 ${phoenixScore > 70 ? 'text-phoenix-amber' : 'text-muted-foreground'}`} />
-                    </motion.div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center">
-                    <motion.div
-                      key={phoenixScore}
-                      initial={{ scale: 0.8 }}
-                      animate={{ scale: 1 }}
-                      className="text-6xl font-bold bg-gradient-to-r from-phoenix-amber to-phoenix-gold bg-clip-text text-transparent"
-                    >
-                      {phoenixScore}
-                    </motion.div>
-                    <p className="text-sm text-muted-foreground">de 100 pontos</p>
-                  </div>
-                  <Progress value={phoenixScore} className="h-3" />
-                </CardContent>
-              </Card>
-
-              {/* Daily Metrics */}
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="w-5 h-5" />
-                    Métricas do Dia
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Water */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="flex items-center gap-2">
-                        <Droplets className="w-4 h-4 text-blue-500" />
-                        Água: {water} ml
-                      </Label>
-                      <span className="text-xs text-muted-foreground">Meta: 2500ml</span>
-                    </div>
-                    <Slider
-                      value={[water]}
-                      onValueChange={(v) => setWater(v[0])}
-                      max={4000}
-                      step={100}
-                    />
-                  </div>
-
-                  {/* Steps */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="flex items-center gap-2">
-                        <Footprints className="w-4 h-4 text-green-500" />
-                        Passos: {steps.toLocaleString()}
-                      </Label>
-                      <span className="text-xs text-muted-foreground">Meta: 10.000</span>
-                    </div>
-                    <Slider
-                      value={[steps]}
-                      onValueChange={(v) => setSteps(v[0])}
-                      max={20000}
-                      step={100}
-                    />
-                  </div>
-
-                  {/* Sleep */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-purple-500" />
-                        Sono: {Math.floor(sleep / 60)}h {sleep % 60}min
-                      </Label>
-                      <span className="text-xs text-muted-foreground">Meta: 8h</span>
-                    </div>
-                    <Slider
-                      value={[sleep]}
-                      onValueChange={(v) => setSleep(v[0])}
-                      max={720}
-                      step={15}
-                    />
-                  </div>
-
-                  {/* Training */}
-                  <div className="flex items-center justify-between">
-                    <Label className="flex items-center gap-2">
-                      <Dumbbell className="w-4 h-4 text-phoenix-amber" />
-                      Treino completo
-                    </Label>
-                    <Switch checked={trainingDone} onCheckedChange={setTrainingDone} />
-                  </div>
-
-                  {/* Diet */}
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Utensils className="w-4 h-4 text-orange-500" />
-                      Aderência à dieta: {dietAdherence}/10
-                    </Label>
-                    <Slider
-                      value={[dietAdherence]}
-                      onValueChange={(v) => setDietAdherence(v[0])}
-                      max={10}
-                      step={1}
-                    />
-                  </div>
-
-                  <Button
-                    onClick={saveTodayCheck}
-                    className="w-full rounded-lg bg-gradient-to-r from-phoenix-amber to-phoenix-gold"
-                  >
-                    Salvar Progresso
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Week Summary */}
-              {weekStats.length > 0 && (
-                <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5" />
-                      Última Semana
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {weekStats.slice(-7).map((check, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-secondary/50">
-                          <span className="text-sm">{new Date(check.date).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-                          <div className="flex gap-1">
-                            {check.water_ml >= 2000 && <Droplets className="w-4 h-4 text-blue-500" />}
-                            {check.steps >= 8000 && <Footprints className="w-4 h-4 text-green-500" />}
-                            {check.training_completed && <Dumbbell className="w-4 h-4 text-phoenix-amber" />}
-                            {check.sleep_min >= 420 && <Moon className="w-4 h-4 text-purple-500" />}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </motion.div>
-          )}
-
-          {activeTab === 'treino' && (
-            <motion.div
-              key="treino"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="safe-bottom"
-            >
-              <TrainingEditor selectedDate={new Date()} />
-            </motion.div>
-          )}
-
-          {activeTab === 'dieta' && (
-            <motion.div
-              key="dieta"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="safe-bottom"
-            >
-              <DietPlanner />
-            </motion.div>
-          )}
-
-          {activeTab === 'sono' && (
-            <motion.div
-              key="sono"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="container mx-auto px-4 py-6 max-w-2xl safe-bottom space-y-6"
-            >
-              {/* Sleep Score Card */}
-              <Card className="glass-card border-purple-500/20">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-2xl">Sleep Score</CardTitle>
-                      <CardDescription>Sua qualidade de sono</CardDescription>
-                    </div>
-                    <motion.div
-                      animate={{ rotate: sleep >= 420 ? [0, 10, -10, 0] : 0 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <Moon className={`w-12 h-12 ${sleep >= 420 ? 'text-phoenix-amber' : 'text-muted-foreground'}`} />
-                    </motion.div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center">
-                    <motion.div
-                      key={sleep}
-                      initial={{ scale: 0.8 }}
-                      animate={{ scale: 1 }}
-                      className="text-6xl font-bold bg-gradient-to-r from-purple-500 to-phoenix-amber bg-clip-text text-transparent"
-                    >
-                      {Math.round((sleep / 480) * 100)}
-                    </motion.div>
-                    <p className="text-sm text-muted-foreground">de 100 pontos</p>
-                  </div>
-                  <Progress value={(sleep / 480) * 100} className="h-3" />
-                  
-                  {/* Sleep Tip */}
+          <main className="w-full">
+            <AnimatePresence mode="wait">
+              {activeTab === 'home' && (
+                <motion.div
+                  key="home"
+                  {...animationConfig.tabTransition}
+                  className="space-y-8 lg:space-y-12"
+                >
+                  {/* Phoenix Score Card - Redesenho */}
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className={`p-4 rounded-lg border-2 ${
-                      sleep >= 420 
-                        ? 'bg-phoenix-amber/10 border-phoenix-amber/30' 
-                        : 'bg-orange-500/10 border-orange-500/30'
-                    }`}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl p-8 lg:p-12"
                   >
-                    <p className={`font-semibold ${sleep >= 420 ? 'text-phoenix-amber' : 'text-orange-600'}`}>
-                      {sleep >= 420 ? '✨ Meta atingida!' : '⏰ Durma mais cedo'}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {sleep >= 420 
-                        ? 'Você está dormindo o suficiente para recuperação ideal.' 
-                        : `Faltam ${Math.ceil((480 - sleep) / 60)}h para atingir as 8h recomendadas.`
-                      }
-                    </p>
-                  </motion.div>
-                </CardContent>
-              </Card>
-              
-              <SleepTracker />
-            </motion.div>
-          )}
-
-          {activeTab === 'coach' && (
-            <motion.div
-              key="coach"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="container mx-auto px-4 py-6 max-w-2xl safe-bottom"
-            >
-              <CoachTab />
-            </motion.div>
-          )}
-
-          {activeTab === 'perfil' && (
-            <motion.div
-              key="perfil"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="container mx-auto px-4 py-6 max-w-2xl safe-bottom space-y-6"
-            >
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="w-6 h-6" />
-                    Perfil
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="text-center">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-phoenix-amber to-phoenix-gold flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl font-bold text-white">
-                        {profile?.name?.charAt(0).toUpperCase() || 'A'}
-                      </span>
-                    </div>
-                    <h3 className="text-xl font-bold">{profile?.name || 'Atleta'}</h3>
-                    <p className="text-sm text-muted-foreground">{user?.email}</p>
-                  </div>
-
-                  <div className="space-y-3 pt-4 border-t">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Altura</span>
-                      <span className="font-medium">{profile?.height_cm} cm</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Peso</span>
-                      <span className="font-medium">{profile?.weight_kg} kg</span>
-                    </div>
-                    {profile?.goals_json && Object.keys(profile.goals_json).length > 0 && (
-                      <div className="pt-2">
-                        <span className="text-sm text-muted-foreground block mb-2">Objetivos</span>
-                        <div className="flex flex-wrap gap-2">
-                          {profile.goals_json.weight_loss && (
-                            <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs">
-                              Perder peso
-                            </span>
-                          )}
-                          {profile.goals_json.muscle_gain && (
-                            <span className="px-3 py-1 rounded-full bg-phoenix-amber/10 text-phoenix-gold text-xs">
-                              Ganhar massa
-                            </span>
-                          )}
-                          {profile.goals_json.endurance && (
-                            <span className="px-3 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 text-xs">
-                              Condicionamento
-                            </span>
-                          )}
-                        </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-2xl">Score Phoenix</CardTitle>
+                        <CardDescription>Seu desempenho hoje</CardDescription>
                       </div>
-                    )}
-                  </div>
+                      <motion.div
+                        animate={{ rotate: phoenixScore > 70 ? [0, 10, -10, 0] : 0 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <Flame className={`w-12 h-12 ${phoenixScore > 70 ? 'text-phoenix-500' : 'text-muted-foreground'}`} />
+                      </motion.div>
+                    </div>
+                    <CardContent className="space-y-6 mt-6">
+                      <div className="text-center">
+                        <motion.div
+                          key={phoenixScore}
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          className="text-6xl font-bold bg-gradient-to-r from-phoenix-500 to-phoenix-600 bg-clip-text text-transparent"
+                        >
+                          {phoenixScore}
+                        </motion.div>
+                        <p className="text-sm text-muted-foreground">de 100 pontos</p>
+                      </div>
+                      <Progress value={phoenixScore} className="h-3" />
+                      <motion.p
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`text-center font-medium text-foreground max-w-md mt-4 ${coachMessage.color}`}
+                      >
+                        {coachMessage.message}
+                      </motion.p>
+                    </CardContent>
+                  </motion.div>
 
-                  <Button
-                    variant="outline"
-                    className="w-full rounded-lg"
-                    onClick={() => {
-                      signOut()
-                      toast.success('Até logo! 👋')
-                    }}
+                  {/* Daily Metrics Card - Redesenho */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl p-8 lg:p-12"
                   >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sair
-                  </Button>
-                </CardContent>
-              </Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-2xl">
+                        <Target className="w-6 h-6 text-phoenix-500" />
+                        Métricas do Dia
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-8">
+                      {/* Water */}
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Droplets className="w-4 h-4 text-blue-500" />
+                          Água: {water} ml
+                        </Label>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Meta: 2500ml</span>
+                          <span className="text-sm font-bold text-blue-600">
+                            {Math.round((water / 2500) * 100)}%
+                          </span>
+                        </div>
+                        <Slider
+                          value={[water]}
+                          onValueChange={(v) => setWater(v[0])}
+                          max={4000}
+                          step={100}
+                        />
+                      </div>
 
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="text-sm">Sobre o App</CardTitle>
-                </CardHeader>
-                <CardContent className="text-xs text-muted-foreground space-y-2">
-                  <p>
-                    <strong>Phoenix Coach</strong> - Seu companheiro de jornada para uma vida mais saudável.
-                  </p>
-                  <p>Versão 1.0.0 MVP</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+                      {/* Steps */}
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Footprints className="w-4 h-4 text-green-500" />
+                          Passos: {steps.toLocaleString()}
+                        </Label>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Meta: 10.000</span>
+                          <span className="text-sm font-bold text-green-600">
+                            {Math.round((steps / 10000) * 100)}%
+                          </span>
+                        </div>
+                        <Slider
+                          value={[steps]}
+                          onValueChange={(v) => setSteps(v[0])}
+                          max={20000}
+                          step={100}
+                        />
+                      </div>
+
+                      {/* Sleep */}
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-purple-500" />
+                          Sono: {Math.floor(sleep / 60)}h {sleep % 60}min
+                        </Label>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Meta: 8h</span>
+                          <span className="text-sm font-bold text-purple-600">
+                            {Math.round((sleep / 480) * 100)}%
+                          </span>
+                        </div>
+                        <Slider
+                          value={[sleep]}
+                          onValueChange={(v) => setSleep(v[0])}
+                          max={720}
+                          step={15}
+                        />
+                      </div>
+
+                      {/* Training */}
+                      <div className="flex items-center justify-between">
+                        <Label className="flex items-center gap-2">
+                          <Dumbbell className="w-4 h-4 text-phoenix-500" />
+                          Treino completo
+                        </Label>
+                        <Switch checked={trainingDone} onCheckedChange={setTrainingDone} />
+                      </div>
+
+                      {/* Diet */}
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Utensils className="w-4 h-4 text-orange-500" />
+                          Aderência à dieta: {dietAdherence}/10
+                        </Label>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Meta: 10</span>
+                          <span className="text-sm font-bold text-orange-600">
+                            {dietAdherence * 10}%
+                          </span>
+                        </div>
+                        <Slider
+                          value={[dietAdherence]}
+                          onValueChange={(v) => setDietAdherence(v[0])}
+                          max={10}
+                          step={1}
+                        />
+                      </div>
+
+                      <Button
+                        onClick={saveTodayCheck}
+                        className="w-full rounded-2xl bg-gradient-to-r from-phoenix-500 to-phoenix-600 text-white shadow-xl hover:shadow-2xl transition-all"
+                      >
+                        Salvar Progresso
+                      </Button>
+                    </CardContent>
+                  </motion.div>
+
+                  {/* Week Summary Card - Redesenho */}
+                  {weekStats.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl p-8 lg:p-12"
+                    >
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-2xl">
+                          <Calendar className="w-6 h-6 text-phoenix-500" />
+                          Última Semana
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {weekStats.slice(-7).map((check, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between p-3 rounded-xl bg-secondary/50"
+                            >
+                              <span className="text-sm font-medium">
+                                {new Date(check.date).toLocaleDateString('pt-BR', {
+                                  weekday: 'short',
+                                  day: 'numeric',
+                                  month: 'short',
+                                })}
+                              </span>
+                              <div className="flex gap-1">
+                                {check.water_ml >= 2000 && <Droplets className="w-4 h-4 text-blue-500" />}
+                                {check.steps >= 8000 && <Footprints className="w-4 h-4 text-green-500" />}
+                                {check.training_completed && <Dumbbell className="w-4 h-4 text-phoenix-500" />}
+                                {check.sleep_min >= 420 && <Moon className="w-4 h-4 text-purple-500" />}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+
+              {activeTab === 'treino' && (
+                <motion.div
+                  key="treino"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="safe-bottom"
+                >
+                  <TrainingEditor selectedDate={new Date()} />
+                </motion.div>
+              )}
+
+              {activeTab === 'dieta' && (
+                <motion.div
+                  key="dieta"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="safe-bottom"
+                >
+                  <DietPlanner />
+                </motion.div>
+              )}
+
+              {activeTab === 'sono' && (
+                <motion.div
+                  key="sono"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="container mx-auto px-4 py-6 max-w-2xl safe-bottom space-y-6"
+                >
+                  {/* Sleep Score Card */}
+                  <Card className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl p-8 lg:p-12">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-2xl">Sleep Score</CardTitle>
+                          <CardDescription>Sua qualidade de sono</CardDescription>
+                        </div>
+                        <motion.div
+                          animate={{ rotate: sleep >= 420 ? [0, 10, -10, 0] : 0 }}
+                          transition={{ duration: 0.5 }}
+                        >
+                          <Moon className={`w-12 h-12 ${sleep >= 420 ? 'text-phoenix-amber' : 'text-muted-foreground'}`} />
+                        </motion.div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="text-center">
+                        <motion.div
+                          key={sleep}
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          className="text-6xl font-bold bg-gradient-to-r from-purple-500 to-phoenix-amber bg-clip-text text-transparent"
+                        >
+                          {Math.round((sleep / 480) * 100)}
+                        </motion.div>
+                        <p className="text-sm text-muted-foreground">de 100 pontos</p>
+                      </div>
+                      <Progress value={(sleep / 480) * 100} className="h-3" />
+                      
+                      {/* Sleep Tip */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className={`p-4 rounded-lg border-2 ${
+                          sleep >= 420 
+                            ? 'bg-phoenix-amber/10 border-phoenix-amber/30' 
+                            : 'bg-orange-500/10 border-orange-500/30'
+                        }`}
+                      >
+                        <p className={`font-semibold ${sleep >= 420 ? 'text-phoenix-amber' : 'text-orange-600'}`}>
+                          {sleep >= 420 ? '✨ Meta atingida!' : '⏰ Durma mais cedo'}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {sleep >= 420 
+                            ? 'Você está dormindo o suficiente para recuperação ideal.' 
+                            : `Faltam ${Math.ceil((480 - sleep) / 60)}h para atingir as 8h recomendadas.`
+                          }
+                        </p>
+                      </motion.div>
+                    </CardContent>
+                  </Card>
+                  
+                  <SleepTracker />
+                </motion.div>
+              )}
+
+              {activeTab === 'coach' && (
+                <motion.div
+                  key="coach"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="container mx-auto px-4 py-6 max-w-2xl safe-bottom"
+                >
+                  <CoachTab />
+                </motion.div>
+              )}
+
+              {activeTab === 'perfil' && (
+                <motion.div
+                  key="perfil"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="container mx-auto px-4 py-6 max-w-2xl safe-bottom space-y-6"
+                >
+                  <Card className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <User className="w-6 h-6" />
+                        Perfil
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="text-center">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-phoenix-500 to-phoenix-600 flex items-center justify-center mx-auto mb-4">
+                          <span className="text-3xl font-bold text-white">
+                            {profile?.name?.charAt(0).toUpperCase() || 'A'}
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-bold">{profile?.name || 'Atleta'}</h3>
+                        <p className="text-sm text-muted-foreground">{user?.email}</p>
+                      </div>
+
+                      <div className="space-y-3 pt-4 border-t">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Altura</span>
+                          <span className="font-medium">{profile?.height_cm} cm</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Peso</span>
+                          <span className="font-medium">{profile?.weight_kg} kg</span>
+                        </div>
+                        {profile?.goals_json && Object.keys(profile.goals_json).length > 0 && (
+                          <div className="pt-2">
+                            <span className="text-sm text-muted-foreground block mb-2">Objetivos</span>
+                            <div className="flex flex-wrap gap-2">
+                              {profile.goals_json.weight_loss && (
+                                <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs">
+                                  Perder peso
+                                </span>
+                              )}
+                              {profile.goals_json.muscle_gain && (
+                                <span className="px-3 py-1 rounded-full bg-phoenix-500/10 text-phoenix-gold text-xs">
+                                  Ganhar massa
+                                </span>
+                              )}
+                              {profile.goals_json.endurance && (
+                                <span className="px-3 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 text-xs">
+                                  Condicionamento
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        className="w-full rounded-lg"
+                        onClick={() => {
+                          signOut()
+                          toast.success('Até logo! 👋')
+                        }}
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Sair
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl">
+                    <CardHeader>
+                      <CardTitle className="text-sm">Sobre o App</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-xs text-muted-foreground space-y-2">
+                      <p>
+                        <strong>Phoenix Coach</strong> - Seu companheiro de jornada para uma vida mais saudável.
+                      </p>
+                      <p>Versão 1.0.0 MVP</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </main>
+        </div>
+      </div>
 
       {/* Bottom Navigation */}
-      <nav className="glass fixed bottom-0 left-0 right-0 border-t">
+      <nav className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-xl fixed bottom-0 left-0 right-0">
         <div className="container mx-auto px-4 max-w-2xl">
           <div className="flex items-center justify-around py-2">
             <button
               onClick={() => setActiveTab('home')}
               className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
-                activeTab === 'home' ? 'text-phoenix-amber' : 'text-muted-foreground'
+                activeTab === 'home' ? 'text-phoenix-500' : 'text-muted-foreground'
               }`}
             >
               <HomeIcon className="w-5 h-5" />
@@ -856,7 +894,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('treino')}
               className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
-                activeTab === 'treino' ? 'text-phoenix-amber' : 'text-muted-foreground'
+                activeTab === 'treino' ? 'text-phoenix-500' : 'text-muted-foreground'
               }`}
             >
               <Dumbbell className="w-5 h-5" />
@@ -866,7 +904,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('dieta')}
               className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
-                activeTab === 'dieta' ? 'text-phoenix-amber' : 'text-muted-foreground'
+                activeTab === 'dieta' ? 'text-phoenix-500' : 'text-muted-foreground'
               }`}
             >
               <Utensils className="w-5 h-5" />
@@ -876,7 +914,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('sono')}
               className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
-                activeTab === 'sono' ? 'text-phoenix-amber' : 'text-muted-foreground'
+                activeTab === 'sono' ? 'text-phoenix-500' : 'text-muted-foreground'
               }`}
             >
               <Moon className="w-5 h-5" />
@@ -886,7 +924,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('coach')}
               className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
-                activeTab === 'coach' ? 'text-phoenix-amber' : 'text-muted-foreground'
+                activeTab === 'coach' ? 'text-phoenix-500' : 'text-muted-foreground'
               }`}
             >
               <Sparkles className="w-5 h-5" />
@@ -896,7 +934,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('perfil')}
               className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
-                activeTab === 'perfil' ? 'text-phoenix-amber' : 'text-muted-foreground'
+                activeTab === 'perfil' ? 'text-phoenix-500' : 'text-muted-foreground'
               }`}
             >
               <User className="w-5 h-5" />
