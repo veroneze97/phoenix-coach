@@ -30,6 +30,7 @@ import {
   Leaf,
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import PhoenixOracle from './PhoenixOracle';
 
 // --- DESIGN SYSTEM TOKENS ---
 const cardStyles = {
@@ -63,8 +64,6 @@ const useDietData = (userId) => {
       const today = new Date().toISOString().split('T')[0]
       const sevenDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-      // Executa todas as buscas em paralelo, mas cada uma com seu próprio try/catch
-      // para evitar que uma falha impeça as outras de serem concluídas.
       const [
         intakeResult,
         adherenceResult,
@@ -76,11 +75,9 @@ const useDietData = (userId) => {
         supabase.from('v_daily_adherence').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
         supabase.from('v_meal_totals').select('*').eq('user_id', userId).eq('date', today),
         supabase.from('v_meal_items_nutrients').select('*').eq('user_id', userId).eq('date', today),
-        // Busca da weekly summary é a mais propensa a falhar, então a tratamos com mais cuidado.
         supabase.from('v_weekly_summary').select('*').eq('user_id', userId).gte('date', sevenDaysAgo).lte('date', today).order('date', { ascending: true }),
       ])
 
-      // Processa os resultados de forma segura
       if (intakeResult.status === 'fulfilled') setDailyIntake(intakeResult.value)
       if (adherenceResult.status === 'fulfilled') setDailyAdherence(adherenceResult.value)
       if (totalsResult.status === 'fulfilled') setMealTotals(totalsResult.value || [])
@@ -88,7 +85,6 @@ const useDietData = (userId) => {
       if (summaryResult.status === 'fulfilled') {
         setWeeklySummary(summaryResult.value)
       } else {
-        // Se a weekly_summary falhar, loga o erro no console, mas não quebra a UI.
         console.error('Could not fetch weekly summary:', summaryResult.reason)
       }
 
@@ -230,9 +226,7 @@ const PhoenixTree = memo(({ dailyIntake }) => {
   return (
     <div className="flex flex-col items-center justify-center w-full h-96">
       <svg width="300" height="300" viewBox="0 0 300 300" className="w-full h-full">
-        {/* Tronco */}
         <rect x="140" y="180" width="20" height="120" fill="#8B4513" />
-        {/* Galhos */}
         <motion.path
           d="M 150 180 Q 120 150 100 120"
           stroke="hsl(var(--phoenix-400))"
@@ -263,7 +257,6 @@ const PhoenixTree = memo(({ dailyIntake }) => {
           animate={{ pathLength: progress.g }}
           transition={{ duration: 2, delay: 0.4, ease: "easeOut" }}
         />
-        {/* Folhas */}
         <motion.circle
           cx="100"
           cy="120"
@@ -641,7 +634,10 @@ export default function DietPlanner() {
           </motion.header>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 lg:gap-12">
+            {/* COLUNA PRINCIPAL (ESQUERDA) */}
             <div className="xl:col-span-2 space-y-8 lg:space-y-12">
+              
+              {/* CONTAINER DA ÁRVORE FÊNIX E MENSAGEM */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -651,16 +647,32 @@ export default function DietPlanner() {
                 <motion.p
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-xl text-center font-medium text-foreground max-w-md mt-6"
+                  className="text-xl text-center font-medium text-foreground max-w-md mt-6 mx-auto"
                 >
                   {getMotivationalMessage(calorieProgress)}
                 </motion.p>
               </motion.div>
 
+              {/* CORREÇÃO 1: Movido o PhoenixOracle para fora da tag <p> e para seu próprio container */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl p-8 lg:p-12"
+              >
+                <PhoenixOracle
+                  dailyIntake={dailyIntake}
+                  mealTotals={mealTotals}
+                  weeklySummary={weeklySummary}
+                />
+              </motion.div>
+
+              {/* CORREÇÃO 2: Movido o gráfico semanal para dentro da coluna principal */}
               {weeklySummary.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
                   className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-lg border border-white/20 dark:border-zinc-700/50 rounded-3xl p-8 lg:p-12"
                 >
                   <h3 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
@@ -712,6 +724,7 @@ export default function DietPlanner() {
               )}
             </div>
 
+            {/* COLUNA LATERAL (DIREITA) */}
             <div className="xl:col-span-1 space-y-8">
               <div>
                 <div className="flex items-center justify-between mb-6">
@@ -772,7 +785,8 @@ export default function DietPlanner() {
           </div>
         </div>
       </div>
-
+      
+      {/* CORREÇÃO 3: Removida a tag </div> extra e reorganizado o final do componente */}
       <FoodModal
         open={isFoodModalOpen}
         onOpenChange={open => {
