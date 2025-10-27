@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, memo } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { Card } from '@/components/ui/card'
@@ -45,6 +45,26 @@ const MEALS = [
   { id: 'snacks', name: 'Lanches', icon: Cookie, emoji: '🍪', gradient: 'from-orange-400 to-red-400' },
 ]
 
+// MELHORIA: Hook de debounce para otimizar a busca de alimentos.
+// Evita múltiplas requisições à API enquanto o usuário digita.
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// NOTA: Para escalabilidade, considere mover a lógica do Supabase para uma camada de serviço (ex: services/diet.js)
+// para desacoplar a UI do provedor de banco de dados.
 const useDietData = (userId) => {
   const [loading, setLoading] = useState(true)
   const [recalculating, setRecalculating] = useState(false)
@@ -110,7 +130,7 @@ const useDietData = (userId) => {
         if (error.message.includes('function') && error.message.includes('does not exist')) {
           toast.error('Função de recálculo não encontrada no banco de dados. Entre em contato com o suporte.')
         } else {
-          throw error; // Lança outros erros para serem pegos pelo catch geral.
+          throw error;
         }
       } else {
         toast.success('Metas recalculadas com sucesso! 🔥')
@@ -386,6 +406,9 @@ const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdi
   const [quantity, setQuantity] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
+  // MELHORIA: Usa o hook de debounce para a busca.
+  const debouncedSearchTerm = useDebounce(foodSearch, 300);
+
   useEffect(() => {
     if (itemToEdit) {
       setSelectedMealType(itemToEdit.meal_type)
@@ -405,23 +428,39 @@ const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdi
     }
   }, [itemToEdit, open])
 
-  const searchFoods = async (query) => {
-    if (query.length < 2) {
-      setFoodResults([])
-      return
+  // MELHORIA: A busca agora é acionada pelo termo "debounced", não a cada digitação.
+  useEffect(() => {
+    const searchFoods = async (query) => {
+      if (query.length < 2) {
+        setFoodResults([])
+        return
+      }
+      const { data, error } = await supabase
+        .from('foods')
+        .select('*')
+        .ilike('name', `%${query}%`)
+        .limit(10)
+      if (!error) setFoodResults(data)
     }
-    const { data, error } = await supabase
-      .from('foods')
-      .select('*')
-      .ilike('name', `%${query}%`)
-      .limit(10)
-    if (!error) setFoodResults(data)
-  }
+    
+    if (debouncedSearchTerm) {
+      searchFoods(debouncedSearchTerm);
+    } else {
+      setFoodResults([]);
+    }
+  }, [debouncedSearchTerm])
+
 
   const handleSave = async () => {
-    if (!selectedFood || !quantity) return
+    // CORREÇÃO: Validação robusta para garantir que a quantidade seja um número positivo.
+    const qty = parseFloat(quantity);
+    if (!selectedFood || !quantity || isNaN(qty) || qty <= 0) {
+      toast.error('Por favor, insira uma quantidade válida e maior que zero.');
+      return;
+    }
+
     setIsSaving(true)
-    const foodData = { selectedMealType, selectedFood, quantity }
+    const foodData = { selectedMealType, selectedFood, quantity: qty }
     if (itemToEdit) {
       await onUpdateFood(itemToEdit.id, foodData)
     } else {
@@ -469,7 +508,7 @@ const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdi
                 value={foodSearch}
                 onChange={(e) => {
                   setFoodSearch(e.target.value)
-                  searchFoods(e.target.value)
+                  // A busca não é mais chamada aqui diretamente.
                 }}
                 className="pl-10 h-11 rounded-lg"
               />
@@ -606,9 +645,10 @@ export default function DietPlanner() {
   }
 
   return (
+    // CORREÇÃO: Removido `pointer-events: none` do container principal para normalizar a interação.
     <div className="relative min-h-screen overflow-hidden">
       <PhoenixBackground progress={calorieProgress} />
-      <div className="relative z-20 w-full px-6 sm:px-8 lg:px-12 py-8 pointer-events-auto">
+      <div className="relative z-20 w-full px-6 sm:px-8 lg:px-12 py-8">
         <div className="max-w-screen-2xl mx-auto">
           <motion.header
             initial={{ opacity: 0, y: -20 }}
@@ -714,13 +754,13 @@ export default function DietPlanner() {
             {/* COLUNA LATERAL (DIREITA) */}
             <div className="xl:col-span-1 space-y-8">
               <div>
-                <div className="flex items-center justify-between mb-6 pointer-events-auto">
+                <div className="flex items-center justify-between mb-6">
                   <h2 className="text-3xl font-bold text-foreground">Refeições</h2>
+                  {/* CORREÇÃO: Removido o `style` com `pointer-events: auto`, que não é mais necessário. */}
                   <Button
                     onClick={() => setIsFoodModalOpen(true)}
                     size="lg"
                     className="bg-gradient-to-r from-phoenix-500 to-phoenix-600 text-white rounded-2xl shadow-xl hover:shadow-2xl transition-all"
-                    style={{ position: 'relative', zIndex: 9999, pointerEvents: 'auto' }}
                   >
                     <Plus className="w-5 h-5 mr-2" /> Adicionar
                   </Button>
