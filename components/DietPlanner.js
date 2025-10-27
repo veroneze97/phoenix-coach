@@ -559,14 +559,17 @@ export default function DietPlanner() {
     return ((dailyIntake.total_kcal || 0) / (dailyIntake.goal_kcal || 2000)) * 100
   }, [dailyIntake])
 
-  const weeklyChartData = useMemo(
-    () =>
-      weeklySummary.map(day => ({
-        date: new Date(day.date).toLocaleDateString('pt-BR', { weekday: 'short' }),
-        adherence: Math.round(day.avg_adherence_pct || 0),
-      })),
-    [weeklySummary]
-  )
+  // CORREÇÃO: Adiciona uma verificação para garantir que weeklySummary é um array antes de usar .map()
+  // Isso evita o "TypeError: d.map is not a function" se a query do Supabase falhar.
+  const weeklyChartData = useMemo(() => {
+    if (!weeklySummary || !Array.isArray(weeklySummary)) {
+      return []; // Retorna um array vazio se não houver dados, evitando o erro
+    }
+    return weeklySummary.map(day => ({
+      date: new Date(day.date).toLocaleDateString('pt-BR', { weekday: 'short' }),
+      adherence: Math.round(day.avg_adherence_pct || 0),
+    }))
+  }, [weeklySummary])
 
   const getMotivationalMessage = (progress) => {
     if (progress >= 100) return '🔥 Meta atingida! Você é lendário.'
@@ -653,7 +656,7 @@ export default function DietPlanner() {
                 </motion.p>
               </motion.div>
 
-              {/* CORREÇÃO 1: Movido o PhoenixOracle para fora da tag <p> e para seu próprio container */}
+              {/* CORREÇÃO: Movido o PhoenixOracle para fora da tag <p> e para seu próprio container */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -667,7 +670,7 @@ export default function DietPlanner() {
                 />
               </motion.div>
 
-              {/* CORREÇÃO 2: Movido o gráfico semanal para dentro da coluna principal */}
+              {/* CORREÇÃO: Movido o gráfico semanal para dentro da coluna principal */}
               {weeklySummary.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -786,7 +789,6 @@ export default function DietPlanner() {
         </div>
       </div>
       
-      {/* CORREÇÃO 3: Removida a tag </div> extra e reorganizado o final do componente */}
       <FoodModal
         open={isFoodModalOpen}
         onOpenChange={open => {
