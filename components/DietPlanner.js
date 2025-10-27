@@ -740,12 +740,17 @@ export default function DietPlanner() {
                     <Plus className="w-5 h-5 mr-2" /> Adicionar
                   </Button>
                 </div>
-                <div className="space-y-4">
-                  {MEALS.map(meal => {
-                    const data = mealTotals.find(m => m.meal_type === meal.id)
-                    const items = mealItems.filter(item => item.meal_type === meal.id)
+                // Dentro do return do componente DietPlanner, na seção das refeições
+
+                  <div className="space-y-4">
+                   {MEALS.map(meal => {
+                    // CORREÇÃO: Garante que mealTotals e mealItems são arrays antes de usar .find() e .filter()
+    // Isso previne o "TypeError: o.find is not a function"
+                     const data = Array.isArray(mealTotals) ? mealTotals.find(m => m.meal_type === meal.id) : null;
+                    const items = Array.isArray(mealItems) ? mealItems.filter(item => item.meal_type === meal.id) : [];
+    
                     return (
-                      <MealCard
+                     <MealCard
                         key={meal.id}
                         meal={meal}
                         data={data}
@@ -755,8 +760,8 @@ export default function DietPlanner() {
                         onEditItem={handleEditClick}
                         onDeleteItem={handleDeleteClick}
                       />
-                    )
-                  })}
+                     )
+                   })}
                 </div>
               </div>
 
