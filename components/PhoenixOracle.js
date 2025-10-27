@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
+import { motion } from 'framer-motion'; // CORREÇÃO: Importação que faltava
 import { Sparkles, TrendingUp, Target, AlertCircle } from 'lucide-react';
 
 // Função auxiliar para pegar os últimos N dias de dados
+// CORREÇÃO: Verificação mais robusta para garantir que 'data' é um array
 const getLastNDays = (data, n) => {
-  if (!data || data.length === 0) return [];
+  if (!Array.isArray(data) || data.length === 0) return [];
   return data.slice(-n).reverse();
 };
 
@@ -38,10 +40,11 @@ const PhoenixOracle = ({ dailyIntake, mealTotals, weeklySummary }) => {
     }
 
     // 3. Verificar se houve uma refeição rica em carboidratos (pós-treino)
-    const highCarbMeal = mealTotals.some(meal => {
+    // CORREÇÃO: Verifica se 'mealTotals' é um array antes de usar '.some()'
+    const highCarbMeal = Array.isArray(mealTotals) && mealTotals.some(meal => {
       const carbs = meal.total_carbs_g || 0;
       const totalKcal = meal.total_kcal || 0;
-      return totalKcal > 0 && (carbs / totalKcal) * 100 > 60; // Ex: > 60% das calorias de carboidratos
+      return totalKcal > 0 && (carbs / totalKcal) * 100 > 60;
     });
 
     if (highCarbMeal) {

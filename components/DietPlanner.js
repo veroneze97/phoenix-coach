@@ -656,21 +656,20 @@ export default function DietPlanner() {
                 </motion.p>
               </motion.div>
 
-              {/* CORREÇÃO: Movido o PhoenixOracle para fora da tag <p> e para seu próprio container */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
                 className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl p-8 lg:p-12"
               >
+    
                 <PhoenixOracle
-                  dailyIntake={dailyIntake}
-                  mealTotals={mealTotals}
-                  weeklySummary={weeklySummary}
+                  dailyIntake={dailyIntake || {}} // Passa um objeto vazio se dailyIntake for nulo
+                  mealTotals={Array.isArray(mealTotals) ? mealTotals : []} // Garante que seja um array
+                  weeklySummary={Array.isArray(weeklySummary) ? weeklySummary : []} // Garante que seja um array
                 />
               </motion.div>
 
-              {/* CORREÇÃO: Movido o gráfico semanal para dentro da coluna principal */}
               {weeklySummary.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
