@@ -45,9 +45,6 @@ const MEALS = [
   { id: 'snacks', name: 'Lanches', icon: Cookie, emoji: '🍪', gradient: 'from-orange-400 to-red-400' },
 ]
 
-// =================================================================
-// HOOK CUSTOMIZADO PARA GESTÃO DE DADOS (VERSÃO REFINADA E ROBUSTA)
-// =================================================================
 const useDietData = (userId) => {
   const [loading, setLoading] = useState(true)
   const [recalculating, setRecalculating] = useState(false)
@@ -104,16 +101,12 @@ const useDietData = (userId) => {
     setRecalculating(true)
     try {
       const today = new Date().toISOString().slice(0, 10)
-      // CORREÇÃO: Adicionado tratamento de erro mais robusto para a função RPC.
-      // É muito provável que a função 'fn_calc_goals' não exista no seu banco de dados.
-      // Você precisa criá-la manualmente no Supabase SQL Editor para que este botão funcione.
       const { data, error } = await supabase.rpc('fn_calc_goals', {
         p_user_id: userId,
         p_date: today
       })
 
       if (error) {
-        // Se o erro for "function not found", dá uma mensagem mais útil.
         if (error.message.includes('function') && error.message.includes('does not exist')) {
           toast.error('Função de recálculo não encontrada no banco de dados. Entre em contato com o suporte.')
         } else {
@@ -210,9 +203,6 @@ const useDietData = (userId) => {
   }
 }
 
-// =================================================================
-// NOVO COMPONENTE: A TELA VIVA (THE LIVING INTERFACE)
-// =================================================================
 const PhoenixBackground = memo(({ progress }) => {
   const bgOpacity = Math.min(progress / 100, 0.8)
   const bgStyle = {
@@ -221,9 +211,6 @@ const PhoenixBackground = memo(({ progress }) => {
   return <motion.div className="fixed inset-0 -z-10" style={bgStyle} pointerEvents="none" />
 })
 
-// =================================================================
-// NOVO COMPONENTE: A SEMENTE FÊNIX (THE GROWTH JOURNEY)
-// =================================================================
 const PhoenixTree = memo(({ dailyIntake }) => {
   const progress = useMemo(() => {
     if (!dailyIntake) return { c: 0, p: 0, g: 0 }
@@ -304,9 +291,6 @@ const PhoenixTree = memo(({ dailyIntake }) => {
   )
 })
 
-// =================================================================
-// COMPONENTE MEALCARD (COMPLETO E CORRIGIDO)
-// =================================================================
 const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onEditItem, onDeleteItem }) => {
   const Icon = meal.icon
   return (
@@ -394,9 +378,6 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onEditItem, on
   )
 })
 
-// =================================================================
-// COMPONENTE FOODMODAL (COMPLETO E CORRIGIDO)
-// =================================================================
 const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdit }) => {
   const [selectedMealType, setSelectedMealType] = useState('breakfast')
   const [foodSearch, setFoodSearch] = useState('')
@@ -545,9 +526,6 @@ const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdi
   )
 })
 
-// =================================================================
-// COMPONENTE PRINCIPAL COM O NOVO DESIGN
-// =================================================================
 export default function DietPlanner() {
   const { user } = useAuth()
   const {
@@ -649,7 +627,6 @@ export default function DietPlanner() {
             {/* COLUNA PRINCIPAL (ESQUERDA) */}
             <div className="xl:col-span-2 space-y-8 lg:space-y-12">
               
-              {/* CONTAINER DA ÁRVORE FÊNIX E MENSAGEM */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -737,19 +714,17 @@ export default function DietPlanner() {
             {/* COLUNA LATERAL (DIREITA) */}
             <div className="xl:col-span-1 space-y-8">
               <div>
-                {/* CORREÇÃO: Adicionado pointer-events-auto para garantir que cliques funcionem */}
                 <div className="flex items-center justify-between mb-6 pointer-events-auto">
                   <h2 className="text-3xl font-bold text-foreground">Refeições</h2>
-                  {/* CORREÇÃO: Adicionado z-50 para garantir que o botão fique acima de outras camadas */}
                   <Button
                     onClick={() => setIsFoodModalOpen(true)}
                     size="lg"
-                    className="bg-gradient-to-r from-phoenix-500 to-phoenix-600 text-white rounded-2xl shadow-xl hover:shadow-2xl transition-all z-50"
+                    className="bg-gradient-to-r from-phoenix-500 to-phoenix-600 text-white rounded-2xl shadow-xl hover:shadow-2xl transition-all"
+                    style={{ position: 'relative', zIndex: 9999, pointerEvents: 'auto' }}
                   >
                     <Plus className="w-5 h-5 mr-2" /> Adicionar
                   </Button>
                 </div>
-                {/* CORREÇÃO: Comentário de JSX corrigido */}
                 <div className="space-y-4">
                   {MEALS.map(meal => {
                     const data = Array.isArray(mealTotals) ? mealTotals.find(m => m.meal_type === meal.id) : null;
