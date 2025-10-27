@@ -406,7 +406,6 @@ const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdi
   const [quantity, setQuantity] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
-  // MELHORIA: Usa o hook de debounce para a busca.
   const debouncedSearchTerm = useDebounce(foodSearch, 300);
 
   useEffect(() => {
@@ -428,18 +427,29 @@ const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdi
     }
   }, [itemToEdit, open])
 
-  // MELHORIA: A busca agora é acionada pelo termo "debounced", não a cada digitação.
+  // MELHORIA DE DEBUG: Adicionado log para verificar o termo de busca.
   useEffect(() => {
     const searchFoods = async (query) => {
+      console.log(`Buscando por: "${query}"`); // <-- DEBUG: Veja se esta mensagem aparece.
+      
       if (query.length < 2) {
         setFoodResults([])
         return
       }
       const { data, error } = await supabase
-        .from('foods')
+        .from('foods') // <-- VERIFIQUE: O nome da sua tabela é 'foods'?
         .select('*')
-        .ilike('name', `%${query}%`)
+        .ilike('name', `%${query}%`) // <-- VERIFIQUE: O nome da coluna é 'name'?
         .limit(10)
+
+      // MELHORIA DE DEBUG: Agora vamos logar o erro, se houver.
+      if (error) {
+        console.error("Erro ao buscar alimentos no Supabase:", error);
+        toast.error("Erro ao buscar alimentos. Verifique o console.");
+        return;
+      }
+
+      console.log("Resultados encontrados:", data); // <-- DEBUG: Veja o que foi encontrado.
       if (!error) setFoodResults(data)
     }
     
@@ -450,11 +460,13 @@ const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdi
     }
   }, [debouncedSearchTerm])
 
-
   const handleSave = async () => {
-    // CORREÇÃO: Validação robusta para garantir que a quantidade seja um número positivo.
     const qty = parseFloat(quantity);
-    if (!selectedFood || !quantity || isNaN(qty) || qty <= 0) {
+    if (!selectedFood) {
+      toast.error('Por favor, selecione um alimento na lista de busca.');
+      return;
+    }
+    if (!quantity || isNaN(qty) || qty <= 0) {
       toast.error('Por favor, insira uma quantidade válida e maior que zero.');
       return;
     }
@@ -506,10 +518,7 @@ const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdi
               <Input
                 placeholder="Ex: Frango, Arroz..."
                 value={foodSearch}
-                onChange={(e) => {
-                  setFoodSearch(e.target.value)
-                  // A busca não é mais chamada aqui diretamente.
-                }}
+                onChange={(e) => setFoodSearch(e.target.value)}
                 className="pl-10 h-11 rounded-lg"
               />
               {foodResults.length > 0 && (
