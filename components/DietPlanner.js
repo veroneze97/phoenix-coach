@@ -104,14 +104,25 @@ const useDietData = (userId) => {
     setRecalculating(true)
     try {
       const today = new Date().toISOString().slice(0, 10)
-      const { error } = await supabase.rpc('fn_calc_goals', {
+      // CORREÇÃO: Adicionado tratamento de erro mais robusto para a função RPC.
+      // É muito provável que a função 'fn_calc_goals' não exista no seu banco de dados.
+      // Você precisa criá-la manualmente no Supabase SQL Editor para que este botão funcione.
+      const { data, error } = await supabase.rpc('fn_calc_goals', {
         p_user_id: userId,
         p_date: today
       })
 
-      if (error) throw error
-      toast.success('Metas recalculadas com sucesso! 🔥')
-      await fetchAllData()
+      if (error) {
+        // Se o erro for "function not found", dá uma mensagem mais útil.
+        if (error.message.includes('function') && error.message.includes('does not exist')) {
+          toast.error('Função de recálculo não encontrada no banco de dados. Entre em contato com o suporte.')
+        } else {
+          throw error; // Lança outros erros para serem pegos pelo catch geral.
+        }
+      } else {
+        toast.success('Metas recalculadas com sucesso! 🔥')
+        await fetchAllData()
+      }
     } catch (error) {
       console.error('Error recalculating goals:', error)
       toast.error('Erro ao recalcular metas.')
@@ -559,11 +570,9 @@ export default function DietPlanner() {
     return ((dailyIntake.total_kcal || 0) / (dailyIntake.goal_kcal || 2000)) * 100
   }, [dailyIntake])
 
-  // CORREÇÃO: Adiciona uma verificação para garantir que weeklySummary é um array antes de usar .map()
-  // Isso evita o "TypeError: d.map is not a function" se a query do Supabase falhar.
   const weeklyChartData = useMemo(() => {
     if (!weeklySummary || !Array.isArray(weeklySummary)) {
-      return []; // Retorna um array vazio se não houver dados, evitando o erro
+      return [];
     }
     return weeklySummary.map(day => ({
       date: new Date(day.date).toLocaleDateString('pt-BR', { weekday: 'short' }),
@@ -662,11 +671,10 @@ export default function DietPlanner() {
                 transition={{ delay: 0.2 }}
                 className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl p-8 lg:p-12"
               >
-    
                 <PhoenixOracle
-                  dailyIntake={dailyIntake || {}} // Passa um objeto vazio se dailyIntake for nulo
-                  mealTotals={Array.isArray(mealTotals) ? mealTotals : []} // Garante que seja um array
-                  weeklySummary={Array.isArray(weeklySummary) ? weeklySummary : []} // Garante que seja um array
+                  dailyIntake={dailyIntake || {}}
+                  mealTotals={Array.isArray(mealTotals) ? mealTotals : []}
+                  weeklySummary={Array.isArray(weeklySummary) ? weeklySummary : []}
                 />
               </motion.div>
 
@@ -729,27 +737,25 @@ export default function DietPlanner() {
             {/* COLUNA LATERAL (DIREITA) */}
             <div className="xl:col-span-1 space-y-8">
               <div>
-                <div className="flex items-center justify-between mb-6">
+                {/* CORREÇÃO: Adicionado pointer-events-auto para garantir que cliques funcionem */}
+                <div className="flex items-center justify-between mb-6 pointer-events-auto">
                   <h2 className="text-3xl font-bold text-foreground">Refeições</h2>
+                  {/* CORREÇÃO: Adicionado z-50 para garantir que o botão fique acima de outras camadas */}
                   <Button
                     onClick={() => setIsFoodModalOpen(true)}
                     size="lg"
-                    className="bg-gradient-to-r from-phoenix-500 to-phoenix-600 text-white rounded-2xl shadow-xl hover:shadow-2xl transition-all"
+                    className="bg-gradient-to-r from-phoenix-500 to-phoenix-600 text-white rounded-2xl shadow-xl hover:shadow-2xl transition-all z-50"
                   >
                     <Plus className="w-5 h-5 mr-2" /> Adicionar
                   </Button>
                 </div>
-                // Dentro do return do componente DietPlanner, na seção das refeições
-
-                  <div className="space-y-4">
-                   {MEALS.map(meal => {
-                    // CORREÇÃO: Garante que mealTotals e mealItems são arrays antes de usar .find() e .filter()
-    // Isso previne o "TypeError: o.find is not a function"
-                     const data = Array.isArray(mealTotals) ? mealTotals.find(m => m.meal_type === meal.id) : null;
+                {/* CORREÇÃO: Comentário de JSX corrigido */}
+                <div className="space-y-4">
+                  {MEALS.map(meal => {
+                    const data = Array.isArray(mealTotals) ? mealTotals.find(m => m.meal_type === meal.id) : null;
                     const items = Array.isArray(mealItems) ? mealItems.filter(item => item.meal_type === meal.id) : [];
-    
                     return (
-                     <MealCard
+                      <MealCard
                         key={meal.id}
                         meal={meal}
                         data={data}
@@ -759,8 +765,8 @@ export default function DietPlanner() {
                         onEditItem={handleEditClick}
                         onDeleteItem={handleDeleteClick}
                       />
-                     )
-                   })}
+                    )
+                  })}
                 </div>
               </div>
 
