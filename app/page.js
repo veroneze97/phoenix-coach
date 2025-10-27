@@ -878,7 +878,8 @@ export default function App() {
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-xl fixed bottom-0 left-0 right-0">
+      {/* CORREÇÃO: Adicionado z-50 para garantir que o menu fique visível acima de todo o conteúdo */}
+      <nav className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-xl fixed bottom-0 left-0 right-0 z-50">
         <div className="container mx-auto px-4 max-w-2xl">
           <div className="flex items-center justify-around py-2">
             <button
