@@ -603,7 +603,7 @@ const MealCard = memo(({
                 <span aria-hidden>{meal.emoji}</span> {meal.name}
               </h3>
               <p className={`${TOKENS.textMuted} text-sm`}>{Math.round(data?.total_kcal || 0)} kcal</p>
-              <div className="flex gap-3 font-medium text-[12px] mt-1">
+              <div className="flex flex-wrap gap-3 font-medium text-[12px] mt-1">
                 <span className="text-green-600 dark:text-green-400">C: {Math.round(data?.total_carbs_g || 0)}g</span>
                 <span className="text-blue-600 dark:text-blue-400">P: {Math.round(data?.total_protein_g || 0)}g</span>
                 <span className="text-orange-600 dark:text-orange-400">G: {Math.round(data?.total_fat_g || 0)}g</span>
