@@ -45,8 +45,7 @@ const MEALS = [
   { id: 'snacks', name: 'Lanches', icon: Cookie, emoji: '🍪', gradient: 'from-orange-400 to-red-400' },
 ]
 
-// MELHORIA: Hook de debounce para otimizar a busca de alimentos.
-// Evita múltiplas requisições à API enquanto o usuário digita.
+// Hook de debounce para otimizar a busca de alimentos
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -63,8 +62,6 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-// NOTA: Para escalabilidade, considere mover a lógica do Supabase para uma camada de serviço (ex: services/diet.js)
-// para desacoplar a UI do provedor de banco de dados.
 const useDietData = (userId) => {
   const [loading, setLoading] = useState(true)
   const [recalculating, setRecalculating] = useState(false)
@@ -81,6 +78,9 @@ const useDietData = (userId) => {
       const today = new Date().toISOString().split('T')[0]
       const sevenDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
+      // Adicionando um parâmetro aleatório para evitar cache
+      const cacheBuster = Date.now();
+
       const [
         intakeResult,
         adherenceResult,
@@ -95,10 +95,19 @@ const useDietData = (userId) => {
         supabase.from('v_weekly_summary').select('*').eq('user_id', userId).gte('date', sevenDaysAgo).lte('date', today).order('date', { ascending: true }),
       ])
 
-      if (intakeResult.status === 'fulfilled') setDailyIntake(intakeResult.value)
+      if (intakeResult.status === 'fulfilled') {
+        console.log('Daily intake loaded:', intakeResult.value);
+        setDailyIntake(intakeResult.value)
+      }
       if (adherenceResult.status === 'fulfilled') setDailyAdherence(adherenceResult.value)
-      if (totalsResult.status === 'fulfilled') setMealTotals(totalsResult.value || [])
-      if (itemsResult.status === 'fulfilled') setMealItems(itemsResult.value || [])
+      if (totalsResult.status === 'fulfilled') {
+        console.log('Meal totals loaded:', totalsResult.value);
+        setMealTotals(totalsResult.value || [])
+      }
+      if (itemsResult.status === 'fulfilled') {
+        console.log('Meal items loaded:', itemsResult.value);
+        setMealItems(itemsResult.value || [])
+      }
       if (summaryResult.status === 'fulfilled') {
         setWeeklySummary(summaryResult.value)
       } else {
@@ -116,6 +125,25 @@ const useDietData = (userId) => {
   useEffect(() => {
     fetchAllData()
   }, [fetchAllData])
+
+  // Adicionando subscrição em tempo real para atualizações automáticas
+  useEffect(() => {
+    if (!userId) return;
+    
+    const channel = supabase
+      .channel('meal_items_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'meal_items', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          console.log('Change detected in meal_items:', payload);
+          fetchAllData();
+        }
+      )
+      .subscribe();
+      
+    return () => supabase.removeChannel(channel);
+  }, [userId, fetchAllData]);
 
   const recalculateGoals = useCallback(async () => {
     setRecalculating(true)
@@ -152,17 +180,25 @@ const useDietData = (userId) => {
       const gramsPerUnit = selectedFood.grams_per_unit || 1
       const gramsTotal = qty * gramsPerUnit
 
-      const { error } = await supabase.from('meal_items').insert({
+      console.log('Adding food:', { userId, today, selectedMealType, foodId: selectedFood.id, qty, gramsTotal });
+
+      const { data, error } = await supabase.from('meal_items').insert({
         user_id: userId,
         date: today,
         meal_type: selectedMealType,
         food_id: selectedFood.id,
         qty_units: qty,
         grams_total: gramsTotal,
-      })
+      }).select();
 
       if (error) throw error
+      
+      console.log('Food added successfully:', data);
       toast.success('Alimento adicionado! 🎉')
+      
+      // Adicionando um pequeno delay para garantir que o banco de dados processe a atualização
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       await fetchAllData()
     } catch (error) {
       console.error('Error adding food:', error)
@@ -177,6 +213,8 @@ const useDietData = (userId) => {
       const gramsPerUnit = selectedFood.grams_per_unit || 1
       const gramsTotal = qty * gramsPerUnit
 
+      console.log('Updating food:', { itemId, selectedMealType, foodId: selectedFood.id, qty, gramsTotal });
+
       const { error } = await supabase.from('meal_items').update({
         meal_type: selectedMealType,
         food_id: selectedFood.id,
@@ -186,6 +224,10 @@ const useDietData = (userId) => {
 
       if (error) throw error
       toast.success('Alimento atualizado! ✅')
+      
+      // Adicionando um pequeno delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       await fetchAllData()
     } catch (error) {
       console.error('Error updating food:', error)
@@ -195,9 +237,15 @@ const useDietData = (userId) => {
 
   const deleteFood = useCallback(async (itemId) => {
     try {
+      console.log('Deleting food:', itemId);
+      
       const { error } = await supabase.from('meal_items').delete().eq('id', itemId)
       if (error) throw error
       toast.success('Alimento removido! 🗑️')
+      
+      // Adicionando um pequeno delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       await fetchAllData()
     } catch (error) {
       console.error('Error deleting food:', error)
@@ -427,29 +475,28 @@ const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdi
     }
   }, [itemToEdit, open])
 
-  // MELHORIA DE DEBUG: Adicionado log para verificar o termo de busca.
   useEffect(() => {
     const searchFoods = async (query) => {
-      console.log(`Buscando por: "${query}"`); // <-- DEBUG: Veja se esta mensagem aparece.
+      console.log(`Buscando por: "${query}"`);
       
       if (query.length < 2) {
         setFoodResults([])
         return
       }
+      
       const { data, error } = await supabase
-        .from('foods') // <-- VERIFIQUE: O nome da sua tabela é 'foods'?
+        .from('foods')
         .select('*')
-        .ilike('name', `%${query}%`) // <-- VERIFIQUE: O nome da coluna é 'name'?
+        .ilike('name', `%${query}%`)
         .limit(10)
 
-      // MELHORIA DE DEBUG: Agora vamos logar o erro, se houver.
       if (error) {
         console.error("Erro ao buscar alimentos no Supabase:", error);
         toast.error("Erro ao buscar alimentos. Verifique o console.");
         return;
       }
 
-      console.log("Resultados encontrados:", data); // <-- DEBUG: Veja o que foi encontrado.
+      console.log("Resultados encontrados:", data);
       if (!error) setFoodResults(data)
     }
     
@@ -654,7 +701,6 @@ export default function DietPlanner() {
   }
 
   return (
-    // CORREÇÃO: Removido `pointer-events: none` do container principal para normalizar a interação.
     <div className="relative min-h-screen overflow-hidden">
       <PhoenixBackground progress={calorieProgress} />
       <div className="relative z-20 w-full px-6 sm:px-8 lg:px-12 py-8">
@@ -765,7 +811,6 @@ export default function DietPlanner() {
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-3xl font-bold text-foreground">Refeições</h2>
-                  {/* CORREÇÃO: Removido o `style` com `pointer-events: auto`, que não é mais necessário. */}
                   <Button
                     onClick={() => setIsFoodModalOpen(true)}
                     size="lg"
@@ -806,17 +851,27 @@ export default function DietPlanner() {
                 <p className="text-muted-foreground mb-6">
                   Seu plano está otimizado para os melhores resultados.
                 </p>
-                <Button
-                  onClick={actions.recalculateGoals}
-                  disabled={recalculating}
-                  variant="outline"
-                  className="w-full rounded-2xl border-phoenix-500 text-phoenix-600 hover:bg-phoenix-500 hover:text-white transition-all"
-                >
-                  <RefreshCw
-                    className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`}
-                  />
-                  {recalculating ? 'Recalculando...' : 'Recalcular Metas'}
-                </Button>
+                <div className="space-y-3">
+                  <Button
+                    onClick={actions.recalculateGoals}
+                    disabled={recalculating}
+                    variant="outline"
+                    className="w-full rounded-2xl border-phoenix-500 text-phoenix-600 hover:bg-phoenix-500 hover:text-white transition-all"
+                  >
+                    <RefreshCw
+                      className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`}
+                    />
+                    {recalculating ? 'Recalculando...' : 'Recalcular Metas'}
+                  </Button>
+                  <Button
+                    onClick={actions.fetchAllData}
+                    variant="outline"
+                    className="w-full rounded-2xl border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white transition-all"
+                  >
+                    <RefreshCw className="w-5 h-5 mr-2" />
+                    Atualizar Dados
+                  </Button>
+                </div>
               </motion.div>
             </div>
           </div>
