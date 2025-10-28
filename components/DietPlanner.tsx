@@ -7,7 +7,7 @@
  * - Visual premium, responsivo e comentado
  */
 
-import { useState, useEffect, useMemo, useCallback, memo } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
@@ -128,7 +128,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 // ------------------------------------
-// Hook de dados
+// Hook de dados (com correções de atualização)
 // ------------------------------------
 const useDietData = (userId?: UUID) => {
   const [loading, setLoading] = useState(true)
@@ -138,6 +138,16 @@ const useDietData = (userId?: UUID) => {
   const [mealTotals, setMealTotals] = useState<MealTotal[]>([])
   const [mealItems, setMealItems] = useState<MealItem[]>([])
   const [weeklySummary, setWeeklySummary] = useState<WeeklyPoint[]>([])
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
+
+  const safeSetState = <T,>(setter: (v: T) => void, value: T) => {
+    if (mountedRef.current) setter(value)
+  }
 
   const fetchAllData = useCallback(async () => {
     if (!userId) return
@@ -153,23 +163,58 @@ const useDietData = (userId?: UUID) => {
         itemsResult,
         summaryResult
       ] = await Promise.allSettled([
-        supabase.from('v_daily_intake').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
-        supabase.from('v_daily_adherence').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
-        supabase.from('v_meal_totals').select('*').eq('user_id', userId).eq('date', today),
-        supabase.from('v_meal_items_nutrients').select('*').eq('user_id', userId).eq('date', today),
-        supabase.from('v_weekly_summary').select('*').eq('user_id', userId).gte('date', sevenDaysAgo).lte('date', today).order('date', { ascending: true }),
+        supabase.from('v_daily_intake')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('date', today)
+          .maybeSingle(), // PostgrestMaybeSingleResponse
+        supabase.from('v_daily_adherence')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('date', today)
+          .maybeSingle(),
+        supabase.from('v_meal_totals')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('date', today),
+        supabase.from('v_meal_items_nutrients')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('date', today),
+        supabase.from('v_weekly_summary')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('date', sevenDaysAgo)
+          .lte('date', today)
+          .order('date', { ascending: true }),
       ])
 
-      if (intakeResult.status === 'fulfilled')   setDailyIntake((intakeResult.value as any) || null)
-      if (adherenceResult.status === 'fulfilled') setDailyAdherence((adherenceResult.value as any) || null)
-      if (totalsResult.status === 'fulfilled')    setMealTotals((totalsResult.value as any) || [])
-      if (itemsResult.status === 'fulfilled')     setMealItems((itemsResult.value as any) || [])
-      if (summaryResult.status === 'fulfilled')   setWeeklySummary((summaryResult.value as any) || [])
+      // ✅ Desempacotar .data corretamente e proteger contra undefined
+      if (intakeResult.status === 'fulfilled') {
+        const { data } = intakeResult.value as { data: DailyIntake | null }
+        safeSetState(setDailyIntake, data ?? null)
+      }
+      if (adherenceResult.status === 'fulfilled') {
+        const { data } = adherenceResult.value as { data: any | null }
+        safeSetState(setDailyAdherence, data ?? null)
+      }
+      if (totalsResult.status === 'fulfilled') {
+        const { data } = totalsResult.value as { data: MealTotal[] | null }
+        safeSetState(setMealTotals, Array.isArray(data) ? data : [])
+      }
+      if (itemsResult.status === 'fulfilled') {
+        const { data } = itemsResult.value as { data: MealItem[] | null }
+        safeSetState(setMealItems, Array.isArray(data) ? data : [])
+      }
+      if (summaryResult.status === 'fulfilled') {
+        const { data } = summaryResult.value as { data: WeeklyPoint[] | null }
+        safeSetState(setWeeklySummary, Array.isArray(data) ? data : [])
+      }
     } catch (error) {
       console.error('Erro ao carregar dados da dieta:', error)
       toast.error('Erro ao carregar dados da dieta.')
     } finally {
-      setLoading(false)
+      if (mountedRef.current) setLoading(false)
     }
   }, [userId])
 
@@ -180,9 +225,20 @@ const useDietData = (userId?: UUID) => {
     if (!userId) return
     const channel = supabase
       .channel('meal_items_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'meal_items', filter: `user_id=eq.${userId}` }, fetchAllData)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'meal_items', filter: `user_id=eq.${userId}` },
+        async () => {
+          // Pequeno *debounce* para materializar views/cálculos
+          await new Promise(r => setTimeout(r, 150))
+          fetchAllData()
+        }
+      )
       .subscribe()
-    return () => supabase.removeChannel(channel)
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [userId, fetchAllData])
 
   const recalculateGoals = useCallback(async () => {
@@ -191,10 +247,11 @@ const useDietData = (userId?: UUID) => {
       const today = new Date().toISOString().slice(0, 10)
       const { error } = await supabase.rpc('fn_calc_goals', { p_user_id: userId, p_date: today })
       if (error) {
-        if (error.message.includes('does not exist')) toast.error('Função de recálculo não encontrada.')
+        if (error.message?.includes('does not exist')) toast.error('Função de recálculo não encontrada.')
         else throw error
       } else {
         toast.success('Metas recalculadas! 🔥')
+        await new Promise(r => setTimeout(r, 250))
         await fetchAllData()
       }
     } catch (error) {
@@ -224,11 +281,11 @@ const useDietData = (userId?: UUID) => {
         food_id: foodData.selectedFood.id,
         quantity_grams: gramsTotal,          // ✅ seu schema
         grams_total: gramsTotal,             // usado por views/cálculos
-      }).select()
+      }).select('id') // select leve para confirmar inserção
 
       if (error) throw error
       toast.success('Alimento adicionado! 🎉')
-      await new Promise(r => setTimeout(r, 350))
+      await new Promise(r => setTimeout(r, 200))
       await fetchAllData()
     } catch (error: any) {
       console.error('Erro ao adicionar alimento:', error)
@@ -255,7 +312,7 @@ const useDietData = (userId?: UUID) => {
 
       if (error) throw error
       toast.success('Alimento atualizado! ✅')
-      await new Promise(r => setTimeout(r, 350))
+      await new Promise(r => setTimeout(r, 200))
       await fetchAllData()
     } catch (error: any) {
       console.error('Erro ao atualizar alimento:', error)
@@ -269,7 +326,7 @@ const useDietData = (userId?: UUID) => {
       const { error } = await supabase.from('meal_items').delete().eq('id', itemId)
       if (error) throw error
       toast.success('Alimento removido! 🗑️')
-      await new Promise(r => setTimeout(r, 250))
+      await new Promise(r => setTimeout(r, 150))
       await fetchAllData()
     } catch (error: any) {
       console.error('Erro ao remover alimento:', error)
