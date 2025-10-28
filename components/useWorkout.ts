@@ -34,7 +34,10 @@ export function useWorkout(user: any, selectedDate: Date) {
   // 🧠 Buscar ou criar treino do dia
   const loadWorkout = async () => {
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0]
+      const dateStr = new Date(selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000)
+        .toISOString()
+        .split('T')[0]
+
       const { data: workoutData } = await supabase
         .from('workouts')
         .select('*')
