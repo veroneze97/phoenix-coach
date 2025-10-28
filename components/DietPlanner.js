@@ -1,18 +1,31 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
+/**
+ * DietPlanner – Versão UI/UX Premium
+ * - Mantém toda a lógica original (hooks, estados, supabase, props, etc.)
+ * - Refina layout, tipografia, cores, sombras, microinterações e consistência visual
+ * - Melhora responsividade e acessibilidade
+ * - Comentários marcam blocos-chave de UI/UX
+ */
+
+import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
+
+// shadcn/ui
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+
+// UX feedback
 import { toast } from 'sonner'
-import { motion, AnimatePresence } from 'framer-motion'
+
+// Motion & Charts
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
   Flame,
-  Activity,
   Target,
   Sparkles,
   Coffee,
@@ -27,49 +40,63 @@ import {
   Search,
   Edit2,
   Trash2,
-  Leaf,
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import PhoenixOracle from './PhoenixOracle';
 
-// --- DESIGN SYSTEM TOKENS ---
-const cardStyles = {
-  interactive: "bg-white/60 dark:bg-zinc-800/60 backdrop-blur-lg border border-white/20 dark:border-zinc-700/50 shadow-xl rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer",
-  sidebar: "bg-white/60 dark:bg-zinc-800/60 backdrop-blur-lg border border-white/20 dark:border-zinc-700/50 shadow-xl rounded-2xl p-6",
+import PhoenixOracle from './PhoenixOracle'
+
+// -------------------------------------------------------------------------------------------------
+// DESIGN TOKENS (apenas UI – fácil de manter/ajustar sem tocar na lógica)
+// -------------------------------------------------------------------------------------------------
+const TOKENS = {
+  radius: {
+    lg: 'rounded-2xl',
+    xl: 'rounded-3xl',
+  },
+  shadow: {
+    soft: 'shadow-lg',
+    deep: 'shadow-2xl',
+  },
+  blur: 'backdrop-blur-xl',
+  border: 'border border-white/15 dark:border-zinc-700/40',
+  surface: 'bg-white/70 dark:bg-zinc-900/60',
+  surfaceMuted: 'bg-white/55 dark:bg-zinc-900/50',
+  gradientAction: 'bg-gradient-to-r from-phoenix-500 to-phoenix-600',
+  textMuted: 'text-muted-foreground',
 }
+const cardBase = `${TOKENS.surface} ${TOKENS.blur} ${TOKENS.border} ${TOKENS.shadow.deep} ${TOKENS.radius.xl}`
 
+// Refeições (sem mudar IDs/lógica)
 const MEALS = [
   { id: 'breakfast', name: 'Café da Manhã', icon: Coffee, emoji: '☀️', gradient: 'from-yellow-400 to-amber-400' },
-  { id: 'lunch', name: 'Almoço', icon: Sun, emoji: '🌞', gradient: 'from-amber-400 to-orange-400' },
-  { id: 'dinner', name: 'Jantar', icon: Sunset, emoji: '🌙', gradient: 'from-indigo-400 to-blue-400' },
-  { id: 'snacks', name: 'Lanches', icon: Cookie, emoji: '🍪', gradient: 'from-orange-400 to-red-400' },
+  { id: 'lunch',     name: 'Almoço',         icon: Sun,    emoji: '🌞', gradient: 'from-amber-400 to-orange-400' },
+  { id: 'dinner',    name: 'Jantar',         icon: Sunset, emoji: '🌙', gradient: 'from-indigo-400 to-blue-400' },
+  { id: 'snacks',    name: 'Lanches',        icon: Cookie, emoji: '🍪', gradient: 'from-orange-400 to-red-400' },
 ]
 
-// Hook de debounce para otimizar a busca de alimentos
-function useDebounce(value, delay) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
+// -------------------------------------------------------------------------------------------------
+// Hook debounce (inalterado – performance para busca)
+// -------------------------------------------------------------------------------------------------
+function useDebounce(value: string, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
+    const handler = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(handler)
+  }, [value, delay])
+  return debouncedValue
 }
 
-const useDietData = (userId) => {
+// -------------------------------------------------------------------------------------------------
+// Hook de dados (mantém a mesma lógica de chamadas e estados)
+// -------------------------------------------------------------------------------------------------
+const useDietData = (userId?: string) => {
   const [loading, setLoading] = useState(true)
   const [recalculating, setRecalculating] = useState(false)
-  const [dailyIntake, setDailyIntake] = useState(null)
-  const [dailyAdherence, setDailyAdherence] = useState(null)
-  const [mealTotals, setMealTotals] = useState([])
-  const [mealItems, setMealItems] = useState([])
-  const [weeklySummary, setWeeklySummary] = useState([])
+  const [dailyIntake, setDailyIntake] = useState<any>(null)
+  const [dailyAdherence, setDailyAdherence] = useState<any>(null)
+  const [mealTotals, setMealTotals] = useState<any[]>([])
+  const [mealItems, setMealItems] = useState<any[]>([])
+  const [weeklySummary, setWeeklySummary] = useState<any[]>([])
 
   const fetchAllData = useCallback(async () => {
     if (!userId) return
@@ -77,9 +104,6 @@ const useDietData = (userId) => {
     try {
       const today = new Date().toISOString().split('T')[0]
       const sevenDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-
-      // Adicionando um parâmetro aleatório para evitar cache
-      const cacheBuster = Date.now();
 
       const [
         intakeResult,
@@ -95,27 +119,13 @@ const useDietData = (userId) => {
         supabase.from('v_weekly_summary').select('*').eq('user_id', userId).gte('date', sevenDaysAgo).lte('date', today).order('date', { ascending: true }),
       ])
 
-      if (intakeResult.status === 'fulfilled') {
-        console.log('Daily intake loaded:', intakeResult.value);
-        setDailyIntake(intakeResult.value)
-      }
+      if (intakeResult.status === 'fulfilled') setDailyIntake(intakeResult.value)
       if (adherenceResult.status === 'fulfilled') setDailyAdherence(adherenceResult.value)
-      if (totalsResult.status === 'fulfilled') {
-        console.log('Meal totals loaded:', totalsResult.value);
-        setMealTotals(totalsResult.value || [])
-      }
-      if (itemsResult.status === 'fulfilled') {
-        console.log('Meal items loaded:', itemsResult.value);
-        setMealItems(itemsResult.value || [])
-      }
-      if (summaryResult.status === 'fulfilled') {
-        setWeeklySummary(summaryResult.value)
-      } else {
-        console.error('Could not fetch weekly summary:', summaryResult.reason)
-      }
-
+      if (totalsResult.status === 'fulfilled') setMealTotals(totalsResult.value || [])
+      if (itemsResult.status === 'fulfilled') setMealItems(itemsResult.value || [])
+      if (summaryResult.status === 'fulfilled') setWeeklySummary(summaryResult.value)
     } catch (error) {
-      console.error('A critical error occurred while loading diet data:', error)
+      console.error('Erro ao carregar dieta:', error)
       toast.error('Erro ao carregar dados da dieta.')
     } finally {
       setLoading(false)
@@ -126,53 +136,36 @@ const useDietData = (userId) => {
     fetchAllData()
   }, [fetchAllData])
 
-  // Adicionando subscrição em tempo real para atualizações automáticas
   useEffect(() => {
-    if (!userId) return;
-    
+    if (!userId) return
     const channel = supabase
       .channel('meal_items_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'meal_items', filter: `user_id=eq.${userId}` },
-        (payload) => {
-          console.log('Change detected in meal_items:', payload);
-          fetchAllData();
-        }
-      )
-      .subscribe();
-      
-    return () => supabase.removeChannel(channel);
-  }, [userId, fetchAllData]);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meal_items', filter: `user_id=eq.${userId}` }, fetchAllData)
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  }, [userId, fetchAllData])
 
   const recalculateGoals = useCallback(async () => {
     setRecalculating(true)
     try {
       const today = new Date().toISOString().slice(0, 10)
-      const { data, error } = await supabase.rpc('fn_calc_goals', {
-        p_user_id: userId,
-        p_date: today
-      })
-
+      const { error } = await supabase.rpc('fn_calc_goals', { p_user_id: userId, p_date: today })
       if (error) {
-        if (error.message.includes('function') && error.message.includes('does not exist')) {
-          toast.error('Função de recálculo não encontrada no banco de dados. Entre em contato com o suporte.')
-        } else {
-          throw error;
-        }
+        if (error.message.includes('does not exist')) toast.error('Função de recálculo não encontrada.')
+        else throw error
       } else {
-        toast.success('Metas recalculadas com sucesso! 🔥')
+        toast.success('Metas recalculadas! 🔥')
         await fetchAllData()
       }
     } catch (error) {
-      console.error('Error recalculating goals:', error)
+      console.error('Erro no recálculo:', error)
       toast.error('Erro ao recalcular metas.')
     } finally {
       setRecalculating(false)
     }
   }, [userId, fetchAllData])
 
-  const addFood = useCallback(async (foodData) => {
+  const addFood = useCallback(async (foodData: any) => {
     const { selectedMealType, selectedFood, quantity } = foodData
     try {
       const today = new Date().toISOString().split('T')[0]
@@ -180,40 +173,31 @@ const useDietData = (userId) => {
       const gramsPerUnit = selectedFood.grams_per_unit || 1
       const gramsTotal = qty * gramsPerUnit
 
-      console.log('Adding food:', { userId, today, selectedMealType, foodId: selectedFood.id, qty, gramsTotal });
-
-      const { data, error } = await supabase.from('meal_items').insert({
+      const { error } = await supabase.from('meal_items').insert({
         user_id: userId,
         date: today,
         meal_type: selectedMealType,
         food_id: selectedFood.id,
         qty_units: qty,
         grams_total: gramsTotal,
-      }).select();
+      }).select()
 
       if (error) throw error
-      
-      console.log('Food added successfully:', data);
       toast.success('Alimento adicionado! 🎉')
-      
-      // Adicionando um pequeno delay para garantir que o banco de dados processe a atualização
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise(r => setTimeout(r, 400))
       await fetchAllData()
     } catch (error) {
-      console.error('Error adding food:', error)
+      console.error('Erro add food:', error)
       toast.error('Erro ao adicionar alimento.')
     }
   }, [userId, fetchAllData])
 
-  const updateFood = useCallback(async (itemId, foodData) => {
+  const updateFood = useCallback(async (itemId: string, foodData: any) => {
     const { selectedMealType, selectedFood, quantity } = foodData
     try {
       const qty = parseFloat(quantity) || 0
       const gramsPerUnit = selectedFood.grams_per_unit || 1
       const gramsTotal = qty * gramsPerUnit
-
-      console.log('Updating food:', { itemId, selectedMealType, foodId: selectedFood.id, qty, gramsTotal });
 
       const { error } = await supabase.from('meal_items').update({
         meal_type: selectedMealType,
@@ -224,34 +208,26 @@ const useDietData = (userId) => {
 
       if (error) throw error
       toast.success('Alimento atualizado! ✅')
-      
-      // Adicionando um pequeno delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise(r => setTimeout(r, 400))
       await fetchAllData()
     } catch (error) {
-      console.error('Error updating food:', error)
+      console.error('Erro update food:', error)
       toast.error('Erro ao atualizar alimento.')
     }
-  }, [userId, fetchAllData])
+  }, [fetchAllData])
 
-  const deleteFood = useCallback(async (itemId) => {
+  const deleteFood = useCallback(async (itemId: string) => {
     try {
-      console.log('Deleting food:', itemId);
-      
       const { error } = await supabase.from('meal_items').delete().eq('id', itemId)
       if (error) throw error
       toast.success('Alimento removido! 🗑️')
-      
-      // Adicionando um pequeno delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise(r => setTimeout(r, 300))
       await fetchAllData()
     } catch (error) {
-      console.error('Error deleting food:', error)
+      console.error('Erro delete food:', error)
       toast.error('Erro ao remover alimento.')
     }
-  }, [userId, fetchAllData])
+  }, [fetchAllData])
 
   return {
     loading,
@@ -261,38 +237,49 @@ const useDietData = (userId) => {
     mealTotals,
     mealItems,
     weeklySummary,
-    actions: {
-      fetchAllData,
-      recalculateGoals,
-      addFood,
-      updateFood,
-      deleteFood
-    }
+    actions: { fetchAllData, recalculateGoals, addFood, updateFood, deleteFood }
   }
 }
 
-const PhoenixBackground = memo(({ progress }) => {
-  const bgOpacity = Math.min(progress / 100, 0.8)
-  const bgStyle = {
-    background: `radial-gradient(circle at 50% 50%, rgba(251, 146, 60, ${bgOpacity * 0.3}), rgba(251, 146, 60, 0) 50%), linear-gradient(to bottom, #f8fafc, #e2e8f0)`
-  }
-  return <motion.div className="fixed inset-0 -z-10" style={bgStyle} pointerEvents="none" />
+// -------------------------------------------------------------------------------------------------
+// BG dinâmico – mantém ideia, suaviza opacidade e respeita “prefers-reduced-motion”
+// -------------------------------------------------------------------------------------------------
+const PhoenixBackground = memo(({ progress }: { progress: number }) => {
+  const opacity = Math.min(progress / 100, 0.8)
+  return (
+    <motion.div
+      className="fixed inset-0 -z-10"
+      style={{
+        background: `
+          radial-gradient(circle at 50% 50%, rgba(251,146,60,${opacity * 0.28}), rgba(251,146,60,0) 48%),
+          linear-gradient(to bottom, hsl(var(--background)), hsl(var(--muted)))
+        `,
+      }}
+      aria-hidden
+    />
+  )
 })
 
-const PhoenixTree = memo(({ dailyIntake }) => {
+// -------------------------------------------------------------------------------------------------
+// “Árvore” de macro – UI refinada (sem mudar cálculos)
+// -------------------------------------------------------------------------------------------------
+const PhoenixTree = memo(({ dailyIntake }: { dailyIntake: any }) => {
+  const reduceMotion = useReducedMotion()
   const progress = useMemo(() => {
-    if (!dailyIntake) return { c: 0, p: 0, g: 0 }
+    if (!dailyIntake) return { c: 0, p: 0, g: 0, kcal: 0, kcalGoal: 2000 }
     return {
       c: Math.min((dailyIntake.total_carbs_g || 0) / (dailyIntake.goal_carbs_g || 250), 1),
       p: Math.min((dailyIntake.total_protein_g || 0) / (dailyIntake.goal_protein_g || 150), 1),
       g: Math.min((dailyIntake.total_fat_g || 0) / (dailyIntake.goal_fat_g || 65), 1),
+      kcal: dailyIntake.total_kcal || 0,
+      kcalGoal: dailyIntake.goal_kcal || 2000
     }
   }, [dailyIntake])
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-96">
-      <svg width="300" height="300" viewBox="0 0 300 300" className="w-full h-full">
-        <rect x="140" y="180" width="20" height="120" fill="#8B4513" />
+      <svg width="320" height="320" viewBox="0 0 300 300" className="w-full h-full">
+        <rect x="140" y="180" width="20" height="120" fill="hsl(24, 36%, 30%)" rx="6" />
         <motion.path
           d="M 150 180 Q 120 150 100 120"
           stroke="hsl(var(--phoenix-400))"
@@ -301,7 +288,7 @@ const PhoenixTree = memo(({ dailyIntake }) => {
           strokeLinecap="round"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: progress.c }}
-          transition={{ duration: 2, ease: "easeOut" }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 1.8, ease: 'easeOut' }}
         />
         <motion.path
           d="M 150 160 Q 180 130 200 100"
@@ -311,7 +298,7 @@ const PhoenixTree = memo(({ dailyIntake }) => {
           strokeLinecap="round"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: progress.p }}
-          transition={{ duration: 2, delay: 0.2, ease: "easeOut" }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 1.8, delay: 0.15, ease: 'easeOut' }}
         />
         <motion.path
           d="M 150 140 Q 130 110 110 80"
@@ -321,121 +308,103 @@ const PhoenixTree = memo(({ dailyIntake }) => {
           strokeLinecap="round"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: progress.g }}
-          transition={{ duration: 2, delay: 0.4, ease: "easeOut" }}
-        />
-        <motion.circle
-          cx="100"
-          cy="120"
-          r="8"
-          fill="hsl(var(--phoenix-400))"
-          initial={{ scale: 0 }}
-          animate={{ scale: progress.c }}
-          transition={{ delay: 1.5 }}
-        />
-        <motion.circle
-          cx="200"
-          cy="100"
-          r="8"
-          fill="hsl(var(--phoenix-500))"
-          initial={{ scale: 0 }}
-          animate={{ scale: progress.p }}
-          transition={{ delay: 1.7 }}
-        />
-        <motion.circle
-          cx="110"
-          cy="80"
-          r="8"
-          fill="hsl(var(--phoenix-600))"
-          initial={{ scale: 0 }}
-          animate={{ scale: progress.g }}
-          transition={{ delay: 1.9 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 1.8, delay: 0.3, ease: 'easeOut' }}
         />
       </svg>
+
       <div className="mt-4 text-center">
-        <p className="text-2xl font-bold text-foreground">{dailyIntake?.total_kcal || 0} / {dailyIntake?.goal_kcal || 2000} kcal</p>
-        <p className="text-sm text-muted-foreground">Sua jornada hoje</p>
+        <p className="text-2xl font-bold text-foreground">
+          {progress.kcal} / {progress.kcalGoal} kcal
+        </p>
+        <p className={`${TOKENS.textMuted}`}>Sua jornada hoje</p>
       </div>
     </div>
   )
 })
 
-const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onEditItem, onDeleteItem }) => {
+// -------------------------------------------------------------------------------------------------
+// Card de Refeição – header clicável, itens com ações visíveis no hover, foco consistente
+// -------------------------------------------------------------------------------------------------
+const MealCard = memo(({
+  meal, data, items, isExpanded, onToggle, onEditItem, onDeleteItem
+}: {
+  meal: any, data: any, items: any[], isExpanded: boolean,
+  onToggle: () => void, onEditItem: (item: any) => void, onDeleteItem: (id: string) => void
+}) => {
   const Icon = meal.icon
+  const idx = MEALS.findIndex(m => m.id === meal.id)
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 * MEALS.indexOf(meal) }}
-    >
-      <Card className={cardStyles.interactive} onClick={onToggle}>
-        <div className="flex items-center justify-between">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * idx }}>
+      <Card className={`${cardBase} p-5 transition-all hover:-translate-y-0.5`}>
+        {/* Cabeçalho clicável para expandir/colapsar */}
+        <button
+          className="w-full flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-phoenix-500 focus-visible:rounded-xl"
+          onClick={onToggle}
+          aria-expanded={isExpanded}
+          aria-controls={`meal-${meal.id}`}
+        >
           <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-full bg-gradient-to-br ${meal.gradient} shadow-md`}>
+            <span className={`p-3 rounded-full bg-gradient-to-br ${meal.gradient} shadow-md`}>
               <Icon className="w-6 h-6 text-white" />
-            </div>
+            </span>
             <div>
-              <h3 className="font-bold text-lg flex items-center gap-2 text-foreground">
-                <span>{meal.emoji}</span> {meal.name}
+              <h3 className="font-semibold text-lg tracking-tight text-foreground flex items-center gap-2">
+                <span aria-hidden>{meal.emoji}</span> {meal.name}
               </h3>
-              <p className="text-sm text-muted-foreground">{data?.total_kcal || 0} kcal</p>
-              <div className="flex gap-3 font-medium text-xs text-muted-foreground mt-1">
+              <p className={`${TOKENS.textMuted} text-sm`}>{data?.total_kcal || 0} kcal</p>
+              <div className="flex gap-3 font-medium text-[12px] mt-1">
                 <span className="text-green-600 dark:text-green-400">C: {data?.total_carbs_g || 0}g</span>
                 <span className="text-blue-600 dark:text-blue-400">P: {data?.total_protein_g || 0}g</span>
                 <span className="text-phoenix-600 dark:text-phoenix-400">G: {data?.total_fat_g || 0}g</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center">
-            {isExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
-          </div>
-        </div>
-        <AnimatePresence>
+          {isExpanded ? <ChevronUp className="w-5 h-5 opacity-70" /> : <ChevronDown className="w-5 h-5 opacity-70" />}
+        </button>
+
+        <AnimatePresence initial={false}>
           {isExpanded && (
             <motion.div
-              initial={{ height: 0 }}
-              animate={{ height: 'auto' }}
-              exit={{ height: 0 }}
-              transition={{ duration: 0.3 }}
+              id={`meal-${meal.id}`}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.28 }}
               className="overflow-hidden"
             >
               <div className="mt-4 pt-4 border-t border-border space-y-2">
-                {items.length > 0 ? (
-                  items.map((item) => (
-                    <div key={item.id} className="p-3 rounded-lg bg-accent/50 group/item transition-all">
-                      <div className="flex justify-between text-sm items-center">
-                        <span className="font-medium text-foreground">{item.food_name}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">{item.item_kcal} kcal</span>
-                          <div className="flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 text-muted-foreground hover:text-blue-600"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onEditItem(item)
-                              }}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 text-muted-foreground hover:text-red-600"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onDeleteItem(item.id)
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
+                {items.length > 0 ? items.map((item) => (
+                  <div key={item.id} className="group/item p-3 rounded-lg bg-accent/40 hover:bg-accent/60 transition-colors">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-foreground">{item.food_name}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-foreground">{item.item_kcal} kcal</span>
+                        <div className="flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-blue-600"
+                            onClick={(e) => { e.stopPropagation(); onEditItem(item) }}
+                            aria-label="Editar alimento"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-red-600"
+                            onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id) }}
+                            aria-label="Remover alimento"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-2">Nenhum alimento adicionado.</p>
+                  </div>
+                )) : (
+                  <p className={`${TOKENS.textMuted} text-sm text-center py-2`}>Nenhum alimento adicionado.</p>
                 )}
               </div>
             </motion.div>
@@ -446,25 +415,31 @@ const MealCard = memo(({ meal, data, items, isExpanded, onToggle, onEditItem, on
   )
 })
 
-const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdit }) => {
+// -------------------------------------------------------------------------------------------------
+// Modal de Alimento – inputs/coerência visual + validações UX
+// -------------------------------------------------------------------------------------------------
+const FoodModal = memo(({
+  open, onOpenChange, onAddFood, onUpdateFood, itemToEdit
+}: {
+  open: boolean, onOpenChange: (v: boolean) => void,
+  onAddFood: (data: any) => Promise<void>,
+  onUpdateFood: (id: string, data: any) => Promise<void>,
+  itemToEdit: any
+}) => {
   const [selectedMealType, setSelectedMealType] = useState('breakfast')
   const [foodSearch, setFoodSearch] = useState('')
-  const [foodResults, setFoodResults] = useState([])
-  const [selectedFood, setSelectedFood] = useState(null)
-  const [quantity, setQuantity] = useState('')
+  const [foodResults, setFoodResults] = useState<any[]>([])
+  const [selectedFood, setSelectedFood] = useState<any>(null)
+  const [quantity, setQuantity] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
 
-  const debouncedSearchTerm = useDebounce(foodSearch, 300);
+  const debouncedSearchTerm = useDebounce(foodSearch, 300)
 
   useEffect(() => {
     if (itemToEdit) {
       setSelectedMealType(itemToEdit.meal_type)
       setFoodSearch(itemToEdit.food_name)
-      setSelectedFood({
-        id: itemToEdit.food_id,
-        name: itemToEdit.food_name,
-        grams_per_unit: itemToEdit.grams_per_unit,
-      })
+      setSelectedFood({ id: itemToEdit.food_id, name: itemToEdit.food_name, grams_per_unit: itemToEdit.grams_per_unit })
       setQuantity(itemToEdit.qty_units.toString())
     } else {
       setSelectedMealType('breakfast')
@@ -476,144 +451,117 @@ const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdi
   }, [itemToEdit, open])
 
   useEffect(() => {
-    const searchFoods = async (query) => {
-      console.log(`Buscando por: "${query}"`);
-      
-      if (query.length < 2) {
-        setFoodResults([])
-        return
-      }
-      
-      const { data, error } = await supabase
-        .from('foods')
-        .select('*')
-        .ilike('name', `%${query}%`)
-        .limit(10)
-
-      if (error) {
-        console.error("Erro ao buscar alimentos no Supabase:", error);
-        toast.error("Erro ao buscar alimentos. Verifique o console.");
-        return;
-      }
-
-      console.log("Resultados encontrados:", data);
-      if (!error) setFoodResults(data)
+    const run = async (q: string) => {
+      if (q.length < 2) { setFoodResults([]); return }
+      const { data, error } = await supabase.from('foods').select('*').ilike('name', `%${q}%`).limit(10)
+      if (error) { console.error(error); toast.error('Erro ao buscar alimentos.'); return }
+      setFoodResults(data || [])
     }
-    
-    if (debouncedSearchTerm) {
-      searchFoods(debouncedSearchTerm);
-    } else {
-      setFoodResults([]);
-    }
+    if (debouncedSearchTerm) run(debouncedSearchTerm)
+    else setFoodResults([])
   }, [debouncedSearchTerm])
 
   const handleSave = async () => {
-    const qty = parseFloat(quantity);
-    if (!selectedFood) {
-      toast.error('Por favor, selecione um alimento na lista de busca.');
-      return;
-    }
-    if (!quantity || isNaN(qty) || qty <= 0) {
-      toast.error('Por favor, insira uma quantidade válida e maior que zero.');
-      return;
-    }
+    const qty = parseFloat(quantity)
+    if (!selectedFood) return toast.error('Selecione um alimento da lista.')
+    if (!quantity || isNaN(qty) || qty <= 0) return toast.error('Informe uma quantidade válida (> 0).')
 
     setIsSaving(true)
-    const foodData = { selectedMealType, selectedFood, quantity: qty }
-    if (itemToEdit) {
-      await onUpdateFood(itemToEdit.id, foodData)
-    } else {
-      await onAddFood(foodData)
-    }
+    const payload = { selectedMealType, selectedFood, quantity: qty }
+    if (itemToEdit) await onUpdateFood(itemToEdit.id, payload)
+    else await onAddFood(payload)
     setIsSaving(false)
     onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg backdrop-blur-xl bg-background/95 rounded-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-foreground">
+      <DialogContent className={`sm:max-w-lg ${cardBase} p-6`}>
+        <DialogHeader className="mb-2">
+          <DialogTitle className="text-2xl font-semibold tracking-tight">
             {itemToEdit ? 'Editar Alimento' : 'Adicionar Alimento'}
           </DialogTitle>
         </DialogHeader>
+
         <div className="space-y-6">
+          {/* Seletor de Refeição */}
           <div>
-            <Label className="text-sm font-semibold text-foreground">Para qual refeição?</Label>
+            <Label className="text-sm font-semibold">Para qual refeição?</Label>
             <div className="grid grid-cols-2 gap-3 mt-2">
               {MEALS.map(meal => (
                 <Button
                   key={meal.id}
-                  variant={selectedMealType === meal.id ? "default" : "outline"}
+                  variant={selectedMealType === meal.id ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setSelectedMealType(meal.id)}
-                  className={`rounded-xl py-3 transition-all ${
-                    selectedMealType === meal.id
-                      ? `bg-gradient-to-r ${meal.gradient} shadow-lg`
-                      : ''
-                  }`}
+                  className={`rounded-xl py-3 transition-all ${selectedMealType === meal.id ? `bg-gradient-to-r ${meal.gradient} ${TOKENS.shadow.soft}` : ''}`}
+                  aria-pressed={selectedMealType === meal.id}
                 >
                   <span className="mr-2">{meal.emoji}</span> {meal.name}
                 </Button>
               ))}
             </div>
           </div>
+
+          {/* Busca de Alimento */}
           <div>
-            <Label className="text-sm font-semibold text-foreground">Buscar Alimento</Label>
+            <Label className="text-sm font-semibold">Buscar alimento</Label>
             <div className="relative mt-2">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-60" />
               <Input
                 placeholder="Ex: Frango, Arroz..."
                 value={foodSearch}
                 onChange={(e) => setFoodSearch(e.target.value)}
-                className="pl-10 h-11 rounded-lg"
+                className="pl-10 h-11 rounded-xl"
+                aria-autocomplete="list"
               />
               {foodResults.length > 0 && (
-                <div className="mt-2 max-h-48 overflow-y-auto border rounded-lg p-2 bg-accent/30">
+                <div className="mt-2 max-h-48 overflow-y-auto border rounded-xl p-2 bg-accent/40">
                   {foodResults.map(food => (
-                    <div
+                    <button
+                      type="button"
                       key={food.id}
-                      onClick={() => {
-                        setSelectedFood(food)
-                        setFoodSearch(food.name)
-                        setFoodResults([])
-                      }}
-                      className="p-3 rounded-md hover:bg-accent cursor-pointer transition-colors"
+                      onClick={() => { setSelectedFood(food); setFoodSearch(food.name); setFoodResults([]) }}
+                      className="w-full text-left p-3 rounded-md hover:bg-accent focus:bg-accent focus:outline-none"
                     >
                       <p className="font-medium text-foreground">{food.name}</p>
-                      <p className="text-xs text-muted-foreground">{food.kcal_per_100g} kcal / 100g</p>
-                    </div>
+                      <p className="text-xs opacity-70">{food.kcal_per_100g} kcal / 100g</p>
+                    </button>
                   ))}
                 </div>
               )}
             </div>
           </div>
+
+          {/* Quantidade */}
           <div>
-            <Label className="text-sm font-semibold text-foreground">Quantidade</Label>
+            <Label className="text-sm font-semibold">Quantidade (em unidades)</Label>
             <Input
               type="number"
+              inputMode="decimal"
               placeholder="Ex: 150"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="mt-2 h-11 rounded-lg"
+              className="mt-2 h-11 rounded-xl"
             />
             {selectedFood && quantity && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs opacity-70 mt-1">
                 Total: ~{Math.round((parseFloat(quantity) || 0) * (selectedFood.grams_per_unit || 1))}g
               </p>
             )}
           </div>
         </div>
+
         <div className="flex gap-3 mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 h-11 rounded-lg">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 h-11 rounded-xl">
             Cancelar
           </Button>
           <Button
             onClick={handleSave}
             disabled={!selectedFood || !quantity || isSaving}
-            className="flex-1 h-11 rounded-lg bg-gradient-to-r from-phoenix-500 to-phoenix-600 shadow-lg hover:shadow-xl transition-all"
+            className={`flex-1 h-11 rounded-xl ${TOKENS.gradientAction} ${TOKENS.shadow.soft} hover:shadow-xl transition-all`}
           >
-            {isSaving ? 'Salvando...' : (itemToEdit ? 'Salvar Alterações' : 'Adicionar Alimento')}
+            {isSaving ? 'Salvando...' : (itemToEdit ? 'Salvar alterações' : 'Adicionar alimento')}
           </Button>
         </div>
       </DialogContent>
@@ -621,22 +569,31 @@ const FoodModal = memo(({ open, onOpenChange, onAddFood, onUpdateFood, itemToEdi
   )
 })
 
+// -------------------------------------------------------------------------------------------------
+// Skeleton – feedback elegante de carregamento
+// -------------------------------------------------------------------------------------------------
+const SkeletonBlock = ({ className = '' }: { className?: string }) => (
+  <div className={`animate-pulse bg-zinc-200/70 dark:bg-zinc-800 ${TOKENS.radius.lg} ${className}`} />
+)
+
+// -------------------------------------------------------------------------------------------------
+// Página principal – layout premium e responsivo
+// -------------------------------------------------------------------------------------------------
 export default function DietPlanner() {
   const { user } = useAuth()
   const {
     loading,
     recalculating,
     dailyIntake,
-    dailyAdherence,
     mealTotals,
     mealItems,
     weeklySummary,
     actions,
   } = useDietData(user?.id)
 
-  const [expandedMeals, setExpandedMeals] = useState(new Set())
+  const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set())
   const [isFoodModalOpen, setIsFoodModalOpen] = useState(false)
-  const [itemToEdit, setItemToEdit] = useState(null)
+  const [itemToEdit, setItemToEdit] = useState<any>(null)
 
   const calorieProgress = useMemo(() => {
     if (!dailyIntake) return 0
@@ -644,122 +601,107 @@ export default function DietPlanner() {
   }, [dailyIntake])
 
   const weeklyChartData = useMemo(() => {
-    if (!weeklySummary || !Array.isArray(weeklySummary)) {
-      return [];
-    }
+    if (!Array.isArray(weeklySummary)) return []
     return weeklySummary.map(day => ({
       date: new Date(day.date).toLocaleDateString('pt-BR', { weekday: 'short' }),
       adherence: Math.round(day.avg_adherence_pct || 0),
     }))
   }, [weeklySummary])
 
-  const getMotivationalMessage = (progress) => {
+  const getMotivationalMessage = (progress: number) => {
     if (progress >= 100) return '🔥 Meta atingida! Você é lendário.'
-    if (progress >= 90) return `🌟 Quase lá! Sua consistência é incrível.`
-    if (progress >= 70) return `💪 Excelente! Você está no caminho certo.`
-    if (progress >= 50) return `👍 Bom progresso! Continue assim.`
-    return `🌅 Vamos começar! Cada passo conta.`
+    if (progress >= 90)  return '🌟 Quase lá! Sua consistência é incrível.'
+    if (progress >= 70)  return '💪 Excelente! Você está no caminho certo.'
+    if (progress >= 50)  return '👍 Bom progresso! Continue assim.'
+    return '🌅 Vamos começar! Cada passo conta.'
   }
 
-  const toggleMeal = mealId => {
+  const toggleMeal = (mealId: string) =>
     setExpandedMeals(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(mealId)) {
-        newSet.delete(mealId)
-      } else {
-        newSet.add(mealId)
-      }
-      return newSet
+      const next = new Set(prev)
+      next.has(mealId) ? next.delete(mealId) : next.add(mealId)
+      return next
     })
-  }
 
-  const handleAddFood = async foodData => {
-    await actions.addFood(foodData)
-  }
-  const handleUpdateFood = async (itemId, foodData) => {
-    await actions.updateFood(itemId, foodData)
-  }
-  const handleEditClick = item => {
-    setItemToEdit(item)
-    setIsFoodModalOpen(true)
-  }
-  const handleDeleteClick = itemId => {
-    actions.deleteFood(itemId)
-  }
+  const handleAddFood = async (foodData: any) => { await actions.addFood(foodData) }
+  const handleUpdateFood = async (itemId: string, foodData: any) => { await actions.updateFood(itemId, foodData) }
+  const handleEditClick = (item: any) => { setItemToEdit(item); setIsFoodModalOpen(true) }
+  const handleDeleteClick = (itemId: string) => { actions.deleteFood(itemId) }
 
+  // Loading elegante (sem mudar fluxo)
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        >
-          <Flame className="w-12 h-12 text-phoenix-500" />
-        </motion.div>
+      <div className="min-h-screen grid place-items-center px-6">
+        <div className="w-full max-w-5xl">
+          <div className="mb-10 space-y-3">
+            <SkeletonBlock className="h-10 w-56" />
+            <SkeletonBlock className="h-5 w-40" />
+          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <SkeletonBlock className="h-80 xl:col-span-2" />
+            <div className="space-y-6">
+              <SkeletonBlock className="h-20" />
+              <SkeletonBlock className="h-48" />
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden font-sans">
+      {/* BG dinâmico em função da progressão calórica */}
       <PhoenixBackground progress={calorieProgress} />
-      <div className="relative z-20 w-full px-6 sm:px-8 lg:px-12 py-8">
+
+      <div className="relative z-10 w-full px-6 sm:px-8 lg:px-12 py-8">
         <div className="max-w-screen-2xl mx-auto">
-          <motion.header
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-12 text-center sm:text-left"
-          >
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-foreground mb-2">
-              Nutrição
-            </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground font-light">
-              {new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}
-            </p>
+          {/* Cabeçalho hero minimalista */}
+          <motion.header initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+              <div>
+                <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-foreground">Nutrição</h1>
+                <p className={`text-lg sm:text-xl ${TOKENS.textMuted} font-light`}>
+                  {new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}
+                </p>
+              </div>
+              {/* Ação primária flutuante (UX clara) */}
+              <Button
+                onClick={() => setIsFoodModalOpen(true)}
+                size="lg"
+                className={`${TOKENS.gradientAction} text-white ${TOKENS.radius.lg} ${TOKENS.shadow.deep} hover:shadow-2xl transition-all`}
+              >
+                <Plus className="w-5 h-5 mr-2" /> Adicionar alimento
+              </Button>
+            </div>
           </motion.header>
 
+          {/* Grid principal */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 lg:gap-12">
-            {/* COLUNA PRINCIPAL (ESQUERDA) */}
-            <div className="xl:col-span-2 space-y-8 lg:space-y-12">
-              
-              <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl p-8 lg:p-12"
-              >
+            {/* Coluna esquerda (2/3) */}
+            <div className="xl:col-span-2 space-y-8">
+              {/* Hero Card – PhoenixTree + mensagem motivacional */}
+              <Card className={`${cardBase} p-8 lg:p-12`}>
                 <PhoenixTree dailyIntake={dailyIntake} />
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-xl text-center font-medium text-foreground max-w-md mt-6 mx-auto"
-                >
+                <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-xl text-center font-medium text-foreground max-w-md mt-6 mx-auto">
                   {getMotivationalMessage(calorieProgress)}
                 </motion.p>
-              </motion.div>
+              </Card>
 
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-xl border border-white/20 dark:border-zinc-700/50 shadow-2xl rounded-3xl p-8 lg:p-12"
-              >
+              {/* Oracle/insights – mantém seu componente */}
+              <Card className={`${cardBase} p-8 lg:p-12`}>
                 <PhoenixOracle
                   dailyIntake={dailyIntake || {}}
                   mealTotals={Array.isArray(mealTotals) ? mealTotals : []}
                   weeklySummary={Array.isArray(weeklySummary) ? weeklySummary : []}
                 />
-              </motion.div>
+              </Card>
 
+              {/* Análise semanal – linha premium */}
               {weeklySummary.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="bg-white/60 dark:bg-zinc-800/60 backdrop-blur-lg border border-white/20 dark:border-zinc-700/50 rounded-3xl p-8 lg:p-12"
-                >
-                  <h3 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
-                    <Calendar className="w-6 h-6 text-phoenix-500" />
-                    Análise Semanal
+                <Card className={`${cardBase} p-8 lg:p-12`}>
+                  <h3 className="text-2xl font-semibold text-foreground mb-6 flex items-center gap-3">
+                    <Calendar className="w-6 h-6 text-phoenix-500" /> Análise Semanal
                   </h3>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
@@ -770,59 +712,37 @@ export default function DietPlanner() {
                             <stop offset="100%" stopColor="hsl(var(--phoenix-600))" />
                           </linearGradient>
                         </defs>
-                        <XAxis
-                          dataKey="date"
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          domain={[0, 100]}
-                          tickFormatter={value => `${value}%`}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--card))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '12px',
-                          }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="adherence"
-                          stroke="url(#phoenix-gradient)"
-                          strokeWidth={3}
-                          dot={{ fill: 'hsl(var(--phoenix-500))', r: 5 }}
-                        />
+                        <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} axisLine={false} tickLine={false} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 12 }} />
+                        <Line type="monotone" dataKey="adherence" stroke="url(#phoenix-gradient)" strokeWidth={3} dot={{ r: 4 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                </motion.div>
+                </Card>
               )}
             </div>
 
-            {/* COLUNA LATERAL (DIREITA) */}
+            {/* Coluna direita (1/3) */}
             <div className="xl:col-span-1 space-y-8">
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-3xl font-bold text-foreground">Refeições</h2>
+              {/* Lista de Refeições */}
+              <Card className={`${cardBase} p-6`}>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-semibold">Refeições</h2>
                   <Button
                     onClick={() => setIsFoodModalOpen(true)}
-                    size="lg"
-                    className="bg-gradient-to-r from-phoenix-500 to-phoenix-600 text-white rounded-2xl shadow-xl hover:shadow-2xl transition-all"
+                    size="sm"
+                    variant="outline"
+                    className={`${TOKENS.radius.lg} border-phoenix-500 text-phoenix-600 hover:bg-phoenix-500 hover:text-white transition-colors`}
                   >
-                    <Plus className="w-5 h-5 mr-2" /> Adicionar
+                    <Plus className="w-4 h-4 mr-1.5" /> Adicionar
                   </Button>
                 </div>
+
                 <div className="space-y-4">
                   {MEALS.map(meal => {
-                    const data = Array.isArray(mealTotals) ? mealTotals.find(m => m.meal_type === meal.id) : null;
-                    const items = Array.isArray(mealItems) ? mealItems.filter(item => item.meal_type === meal.id) : [];
+                    const data = Array.isArray(mealTotals) ? mealTotals.find(m => m.meal_type === meal.id) : null
+                    const items = Array.isArray(mealItems) ? mealItems.filter(i => i.meal_type === meal.id) : []
                     return (
                       <MealCard
                         key={meal.id}
@@ -837,53 +757,42 @@ export default function DietPlanner() {
                     )
                   })}
                 </div>
-              </div>
+              </Card>
 
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-gradient-to-br from-phoenix-100 to-phoenix-200 dark:from-phoenix-900/50 dark:to-phoenix-800/50 border border-phoenix-300/50 dark:border-phoenix-700/50 rounded-3xl p-8 text-center"
-              >
-                <Sparkles className="w-12 h-12 text-phoenix-600 dark:text-phoenix-400 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-foreground mb-2">
-                  Nutricionista Phoenix
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  Seu plano está otimizado para os melhores resultados.
-                </p>
+              {/* Painel de ações rápidas */}
+              <Card className={`${cardBase} p-6 text-center`}>
+                <Sparkles className="w-10 h-10 text-phoenix-500 mx-auto mb-3" />
+                <h3 className="text-xl font-semibold mb-1">Nutricionista Phoenix</h3>
+                <p className={`${TOKENS.textMuted} mb-5`}>Seu plano está otimizado para os melhores resultados.</p>
                 <div className="space-y-3">
                   <Button
                     onClick={actions.recalculateGoals}
                     disabled={recalculating}
                     variant="outline"
-                    className="w-full rounded-2xl border-phoenix-500 text-phoenix-600 hover:bg-phoenix-500 hover:text-white transition-all"
+                    className={`w-full ${TOKENS.radius.lg} border-phoenix-500 text-phoenix-600 hover:bg-phoenix-500 hover:text-white transition-colors`}
                   >
-                    <RefreshCw
-                      className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`}
-                    />
-                    {recalculating ? 'Recalculando...' : 'Recalcular Metas'}
+                    <RefreshCw className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
+                    {recalculating ? 'Recalculando...' : 'Recalcular metas'}
                   </Button>
                   <Button
                     onClick={actions.fetchAllData}
                     variant="outline"
-                    className="w-full rounded-2xl border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white transition-all"
+                    className={`w-full ${TOKENS.radius.lg} border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white transition-colors`}
                   >
                     <RefreshCw className="w-5 h-5 mr-2" />
-                    Atualizar Dados
+                    Atualizar dados
                   </Button>
                 </div>
-              </motion.div>
+              </Card>
             </div>
           </div>
         </div>
       </div>
-      
+
+      {/* Modal de CRUD de alimento */}
       <FoodModal
         open={isFoodModalOpen}
-        onOpenChange={open => {
-          setIsFoodModalOpen(open)
-          if (!open) setItemToEdit(null)
-        }}
+        onOpenChange={(open) => { setIsFoodModalOpen(open); if (!open) setItemToEdit(null) }}
         onAddFood={handleAddFood}
         onUpdateFood={handleUpdateFood}
         itemToEdit={itemToEdit}
