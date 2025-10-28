@@ -2,10 +2,9 @@
 
 /**
  * DietPlanner – UI/UX Premium (TypeScript)
- * - Preserva 100% da lógica funcional original (Supabase, hooks, estados)
- * - Tipagem mínima para evitar fricção
- * - Visual premium (cards translúcidos, sombras, radius, microinterações)
- * - Responsivo, acessível, comentado
+ * - Mantém a lógica funcional (Supabase, hooks, estados)
+ * - Ajustado para seu schema: quantity_grams + grams_total (+ meal_type enum)
+ * - Visual premium, responsivo e comentado
  */
 
 import { useState, useEffect, useMemo, useCallback, memo } from 'react'
@@ -42,11 +41,11 @@ import {
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
-// Mantém seu componente existente
+// Componente existente
 import PhoenixOracle from './PhoenixOracle'
 
 // ------------------------------------
-// Tipos mínimos (flexíveis)
+// Tipos mínimos
 // ------------------------------------
 type UUID = string
 
@@ -77,7 +76,7 @@ interface MealItem {
   food_id: UUID
   food_name: string
   grams_per_unit?: number
-  qty_units: number
+  quantity_grams?: number      // ✅ seu schema
   grams_total?: number
   item_kcal?: number
 }
@@ -96,17 +95,11 @@ interface MealConfig {
 }
 
 // ------------------------------------
-// Design Tokens (consistência visual)
+// Design Tokens
 // ------------------------------------
 const TOKENS = {
-  radius: {
-    lg: 'rounded-2xl',
-    xl: 'rounded-3xl',
-  },
-  shadow: {
-    soft: 'shadow-lg',
-    deep: 'shadow-2xl',
-  },
+  radius: { lg: 'rounded-2xl', xl: 'rounded-3xl' },
+  shadow: { soft: 'shadow-lg', deep: 'shadow-2xl' },
   blur: 'backdrop-blur-xl',
   border: 'border border-white/15 dark:border-zinc-700/40',
   surface: 'bg-white/70 dark:bg-zinc-900/60',
@@ -115,7 +108,6 @@ const TOKENS = {
 }
 const cardBase = `${TOKENS.surface} ${TOKENS.blur} ${TOKENS.border} ${TOKENS.shadow.deep} ${TOKENS.radius.xl}`
 
-// Mantém IDs/lógica
 const MEALS: MealConfig[] = [
   { id: 'breakfast', name: 'Café da Manhã', icon: Coffee, emoji: '☀️', gradient: 'from-yellow-400 to-amber-400' },
   { id: 'lunch',     name: 'Almoço',         icon: Sun,    emoji: '🌞', gradient: 'from-amber-400 to-orange-400' },
@@ -124,7 +116,7 @@ const MEALS: MealConfig[] = [
 ]
 
 // ------------------------------------
-// Debounce (busca de alimentos)
+// Debounce
 // ------------------------------------
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value)
@@ -136,13 +128,13 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 // ------------------------------------
-// Hook de dados (lógica mantida)
+// Hook de dados
 // ------------------------------------
 const useDietData = (userId?: UUID) => {
   const [loading, setLoading] = useState(true)
   const [recalculating, setRecalculating] = useState(false)
   const [dailyIntake, setDailyIntake] = useState<DailyIntake | null>(null)
-  const [dailyAdherence, setDailyAdherence] = useState<any>(null) // não usado aqui
+  const [dailyAdherence, setDailyAdherence] = useState<any>(null)
   const [mealTotals, setMealTotals] = useState<MealTotal[]>([])
   const [mealItems, setMealItems] = useState<MealItem[]>([])
   const [weeklySummary, setWeeklySummary] = useState<WeeklyPoint[]>([])
@@ -168,11 +160,11 @@ const useDietData = (userId?: UUID) => {
         supabase.from('v_weekly_summary').select('*').eq('user_id', userId).gte('date', sevenDaysAgo).lte('date', today).order('date', { ascending: true }),
       ])
 
-      if (intakeResult.status === 'fulfilled') setDailyIntake((intakeResult.value as any) || null)
+      if (intakeResult.status === 'fulfilled')   setDailyIntake((intakeResult.value as any) || null)
       if (adherenceResult.status === 'fulfilled') setDailyAdherence((adherenceResult.value as any) || null)
-      if (totalsResult.status === 'fulfilled') setMealTotals((totalsResult.value as any) || [])
-      if (itemsResult.status === 'fulfilled') setMealItems((itemsResult.value as any) || [])
-      if (summaryResult.status === 'fulfilled') setWeeklySummary((summaryResult.value as any) || [])
+      if (totalsResult.status === 'fulfilled')    setMealTotals((totalsResult.value as any) || [])
+      if (itemsResult.status === 'fulfilled')     setMealItems((itemsResult.value as any) || [])
+      if (summaryResult.status === 'fulfilled')   setWeeklySummary((summaryResult.value as any) || [])
     } catch (error) {
       console.error('Erro ao carregar dados da dieta:', error)
       toast.error('Erro ao carregar dados da dieta.')
@@ -181,9 +173,7 @@ const useDietData = (userId?: UUID) => {
     }
   }, [userId])
 
-  useEffect(() => {
-    fetchAllData()
-  }, [fetchAllData])
+  useEffect(() => { fetchAllData() }, [fetchAllData])
 
   // Realtime
   useEffect(() => {
@@ -218,30 +208,31 @@ const useDietData = (userId?: UUID) => {
   const addFood = useCallback(async (foodData: {
     selectedMealType: MealType
     selectedFood: { id: UUID; grams_per_unit?: number }
-    quantity: number
+    quantity: number   // unidades (ex.: 1 ovo = 1 unidade)
   }) => {
     try {
+      if (!userId) { toast.error('Sessão não encontrada. Faça login.'); return }
       const today = new Date().toISOString().split('T')[0]
-      const qty = parseFloat(String(foodData.quantity)) || 0
+      const qtyUnits = parseFloat(String(foodData.quantity)) || 0
       const gramsPerUnit = foodData.selectedFood.grams_per_unit || 1
-      const gramsTotal = qty * gramsPerUnit
+      const gramsTotal = qtyUnits * gramsPerUnit
 
       const { error } = await supabase.from('meal_items').insert({
         user_id: userId,
-        date: today,
+        date: today,                          // se sua tabela não tiver "date", remova esta linha
         meal_type: foodData.selectedMealType,
         food_id: foodData.selectedFood.id,
-        qty_units: qty,
-        grams_total: gramsTotal,
+        quantity_grams: gramsTotal,          // ✅ seu schema
+        grams_total: gramsTotal,             // usado por views/cálculos
       }).select()
 
       if (error) throw error
       toast.success('Alimento adicionado! 🎉')
-      await new Promise(r => setTimeout(r, 400))
+      await new Promise(r => setTimeout(r, 350))
       await fetchAllData()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao adicionar alimento:', error)
-      toast.error('Erro ao adicionar alimento.')
+      toast.error(error?.message ? `Erro: ${error.message}` : 'Erro ao adicionar alimento.')
     }
   }, [userId, fetchAllData])
 
@@ -250,39 +241,41 @@ const useDietData = (userId?: UUID) => {
     foodData: { selectedMealType: MealType; selectedFood: { id: UUID; grams_per_unit?: number }; quantity: number }
   ) => {
     try {
-      const qty = parseFloat(String(foodData.quantity)) || 0
+      if (!userId) { toast.error('Sessão não encontrada. Faça login.'); return }
+      const qtyUnits = parseFloat(String(foodData.quantity)) || 0
       const gramsPerUnit = foodData.selectedFood.grams_per_unit || 1
-      const gramsTotal = qty * gramsPerUnit
+      const gramsTotal = qtyUnits * gramsPerUnit
 
       const { error } = await supabase.from('meal_items').update({
         meal_type: foodData.selectedMealType,
         food_id: foodData.selectedFood.id,
-        qty_units: qty,
-        grams_total: gramsTotal,
+        quantity_grams: gramsTotal,          // ✅
+        grams_total: gramsTotal,             // mantém compatibilidade
       }).eq('id', itemId)
 
       if (error) throw error
       toast.success('Alimento atualizado! ✅')
-      await new Promise(r => setTimeout(r, 400))
+      await new Promise(r => setTimeout(r, 350))
       await fetchAllData()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao atualizar alimento:', error)
-      toast.error('Erro ao atualizar alimento.')
+      toast.error(error?.message ? `Erro: ${error.message}` : 'Erro ao atualizar alimento.')
     }
-  }, [fetchAllData])
+  }, [userId, fetchAllData])
 
   const deleteFood = useCallback(async (itemId: UUID) => {
     try {
+      if (!userId) { toast.error('Sessão não encontrada. Faça login.'); return }
       const { error } = await supabase.from('meal_items').delete().eq('id', itemId)
       if (error) throw error
       toast.success('Alimento removido! 🗑️')
-      await new Promise(r => setTimeout(r, 300))
+      await new Promise(r => setTimeout(r, 250))
       await fetchAllData()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao remover alimento:', error)
-      toast.error('Erro ao remover alimento.')
+      toast.error(error?.message ? `Erro: ${error.message}` : 'Erro ao remover alimento.')
     }
-  }, [fetchAllData])
+  }, [userId, fetchAllData])
 
   return {
     loading,
@@ -297,7 +290,7 @@ const useDietData = (userId?: UUID) => {
 }
 
 // ------------------------------------
-// BG dinâmico (progress → opacidade)
+// BG dinâmico
 // ------------------------------------
 const PhoenixBackground = memo(({ progress }: { progress: number }) => {
   const opacity = Math.min(progress / 100, 0.8)
@@ -316,7 +309,7 @@ const PhoenixBackground = memo(({ progress }: { progress: number }) => {
 })
 
 // ------------------------------------
-// “Árvore” de macros (visual)
+// “Árvore” de macros
 // ------------------------------------
 const PhoenixTree = memo(({ dailyIntake }: { dailyIntake: DailyIntake | null }) => {
   const reduceMotion = useReducedMotion()
@@ -378,7 +371,7 @@ const PhoenixTree = memo(({ dailyIntake }: { dailyIntake: DailyIntake | null }) 
 })
 
 // ------------------------------------
-// MealCard (expand/collapse + ações)
+// MealCard
 // ------------------------------------
 const MealCard = memo(({
   meal, data, items, isExpanded, onToggle, onEditItem, onDeleteItem
@@ -491,9 +484,9 @@ const FoodModal = memo(({
   const [foodSearch, setFoodSearch] = useState('')
   const [foodResults, setFoodResults] = useState<any[]>([])
   const [selectedFood, setSelectedFood] = useState<{ id: UUID; name: string; grams_per_unit?: number } | null>(null)
-  const [quantity, setQuantity] = useState<string>('')
-  const [isSaving, setIsSaving] = useState(false)
+  const [quantity, setQuantity] = useState<string>('') // em UNIDADES (ex.: 1 ovo = 1)
 
+  const [isSaving, setIsSaving] = useState(false)
   const debouncedSearchTerm = useDebounce(foodSearch, 300)
 
   useEffect(() => {
@@ -501,7 +494,12 @@ const FoodModal = memo(({
       setSelectedMealType(itemToEdit.meal_type)
       setFoodSearch(itemToEdit.food_name)
       setSelectedFood({ id: itemToEdit.food_id, name: itemToEdit.food_name, grams_per_unit: itemToEdit.grams_per_unit })
-      setQuantity(String(itemToEdit.qty_units))
+
+      // Pré-preenche unidades a partir das gramas salvas
+      const grams = itemToEdit.quantity_grams ?? itemToEdit.grams_total ?? 0
+      const gpu = itemToEdit.grams_per_unit || 1
+      const units = gpu ? grams / gpu : grams
+      setQuantity(String(Number.isFinite(units) ? Math.max(0, +units) : 0))
     } else {
       setSelectedMealType('breakfast')
       setFoodSearch('')
@@ -582,7 +580,15 @@ const FoodModal = memo(({
                     <button
                       type="button"
                       key={food.id}
-                      onClick={() => { setSelectedFood({ id: food.id, name: food.name, grams_per_unit: food.grams_per_unit }); setFoodSearch(food.name); setFoodResults([]) }}
+                      onClick={() => {
+                        setSelectedFood({
+                          id: food.id,                              // ✅ UUID real
+                          name: food.name,
+                          grams_per_unit: food.grams_per_unit ?? 100
+                        })
+                        setFoodSearch(food.name)
+                        setFoodResults([])
+                      }}
                       className="w-full text-left p-3 rounded-md hover:bg-accent focus:bg-accent focus:outline-none"
                     >
                       <p className="font-medium text-foreground">{food.name}</p>
@@ -600,7 +606,7 @@ const FoodModal = memo(({
             <Input
               type="number"
               inputMode="decimal"
-              placeholder="Ex: 150"
+              placeholder="Ex: 1 (ovo), 2..."
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               className="mt-2 h-11 rounded-xl"
@@ -631,7 +637,7 @@ const FoodModal = memo(({
 })
 
 // ------------------------------------
-// Skeleton (loading premium)
+// Skeleton (loading)
 // ------------------------------------
 const SkeletonBlock = ({ className = '' }: { className?: string }) => (
   <div className={`animate-pulse bg-zinc-200/70 dark:bg-zinc-800 ${TOKENS.radius.lg} ${className}`} />
@@ -698,7 +704,6 @@ export default function DietPlanner() {
     actions.deleteFood(itemId)
   }
 
-  // Loading
   if (loading) {
     return (
       <div className="min-h-screen grid place-items-center px-6">
@@ -721,7 +726,6 @@ export default function DietPlanner() {
 
   return (
     <div className="relative min-h-screen overflow-hidden font-sans">
-      {/* BG dinâmico */}
       <PhoenixBackground progress={calorieProgress} />
 
       <div className="relative z-10 w-full px-6 sm:px-8 lg:px-12 py-8">
@@ -745,9 +749,9 @@ export default function DietPlanner() {
             </div>
           </motion.header>
 
-          {/* Grid principal */}
+          {/* Grid */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 lg:gap-12">
-            {/* Coluna esquerda */}
+            {/* Esquerda */}
             <div className="xl:col-span-2 space-y-8">
               <Card className={`${cardBase} p-8 lg:p-12`}>
                 <PhoenixTree dailyIntake={dailyIntake} />
@@ -789,7 +793,7 @@ export default function DietPlanner() {
               )}
             </div>
 
-            {/* Coluna direita */}
+            {/* Direita */}
             <div className="xl:col-span-1 space-y-8">
               <Card className={`${cardBase} p-6`}>
                 <div className="flex items-center justify-between mb-4">
@@ -815,7 +819,7 @@ export default function DietPlanner() {
                         items={items}
                         isExpanded={expandedMeals.has(meal.id)}
                         onToggle={() => toggleMeal(meal.id)}
-                        onEditItem={handleEditClick}
+                        onEditItem={setItemToEdit}
                         onDeleteItem={handleDeleteClick}
                       />
                     )
