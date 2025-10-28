@@ -3,8 +3,10 @@
 /**
  * DietPlanner – UI/UX Premium (TypeScript)
  * - Mantém a lógica funcional (Supabase, hooks, estados)
- * - Ajustado para seu schema: quantity_grams + grams_total (+ meal_type enum)
+ * - Schema compatível: quantity_grams + grams_total (+ meal_type enum, date)
  * - Visual premium, responsivo e comentado
+ * - ✅ Optimistic UI completo (itens + totais + macros) com rollback em falhas
+ * - ✅ Realtime e refetch coerentes com views
  */
 
 import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
@@ -24,7 +26,6 @@ import { toast } from 'sonner'
 
 // Ícones / Charts
 import {
-  Flame,
   Sparkles,
   Coffee,
   Sun,
@@ -45,7 +46,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import PhoenixOracle from './PhoenixOracle'
 
 // ------------------------------------
-// Tipos mínimos
+// Tipos
 // ------------------------------------
 type UUID = string
 
@@ -76,9 +77,10 @@ interface MealItem {
   food_id: UUID
   food_name: string
   grams_per_unit?: number
-  quantity_grams?: number      // ✅ seu schema
+  quantity_grams?: number
   grams_total?: number
   item_kcal?: number
+  __optimistic__?: boolean
 }
 
 interface WeeklyPoint {
@@ -92,6 +94,16 @@ interface MealConfig {
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
   emoji: string
   gradient: string
+}
+
+type SelectedFood = {
+  id: UUID
+  name: string
+  grams_per_unit?: number
+  kcal_per_100g?: number
+  carbs_g_per_100g?: number
+  protein_g_per_100g?: number
+  fat_g_per_100g?: number
 }
 
 // ------------------------------------
@@ -110,10 +122,59 @@ const cardBase = `${TOKENS.surface} ${TOKENS.blur} ${TOKENS.border} ${TOKENS.sha
 
 const MEALS: MealConfig[] = [
   { id: 'breakfast', name: 'Café da Manhã', icon: Coffee, emoji: '☀️', gradient: 'from-yellow-400 to-amber-400' },
-  { id: 'lunch',     name: 'Almoço',         icon: Sun,    emoji: '🌞', gradient: 'from-amber-400 to-orange-400' },
+  { id: 'lunch',     name: 'Alçoço',         icon: Sun,    emoji: '🌞', gradient: 'from-amber-400 to-orange-400' },
   { id: 'dinner',    name: 'Jantar',         icon: Sunset, emoji: '🌙', gradient: 'from-indigo-400 to-blue-400' },
   { id: 'snacks',    name: 'Lanches',        icon: Cookie, emoji: '🍪', gradient: 'from-orange-400 to-red-400' },
 ]
+
+// ------------------------------------
+// Helpers nutricionais (estimativas rápidas)
+// ------------------------------------
+function clampNumber(n?: number) { return Number.isFinite(n) ? (n as number) : 0 }
+function gramsFromUnits(units: number, gramsPerUnit?: number) {
+  const gpu = clampNumber(gramsPerUnit) || 1
+  return units * gpu
+}
+
+function computeDeltaFromFood(food: SelectedFood, gramsTotal: number) {
+  const factor = gramsTotal / 100
+  const kcal = clampNumber(food.kcal_per_100g) * factor
+  const carbs = clampNumber(food.carbs_g_per_100g) * factor
+  const protein = clampNumber(food.protein_g_per_100g) * factor
+  const fat = clampNumber(food.fat_g_per_100g) * factor
+  return { kcal, carbs, protein, fat }
+}
+
+function applyDailyDelta(d: DailyIntake | null, delta: { kcal: number; carbs: number; protein: number; fat: number }) {
+  const base: DailyIntake = d ? { ...d } : {}
+  base.total_kcal = clampNumber(base.total_kcal) + delta.kcal
+  base.total_carbs_g = clampNumber(base.total_carbs_g) + delta.carbs
+  base.total_protein_g = clampNumber(base.total_protein_g) + delta.protein
+  base.total_fat_g = clampNumber(base.total_fat_g) + delta.fat
+  return base
+}
+
+function applyMealDelta(totals: MealTotal[], mealType: MealType, delta: { kcal: number; carbs: number; protein: number; fat: number }) {
+  const arr = [...totals]
+  const idx = arr.findIndex(t => t.meal_type === mealType)
+  if (idx === -1) {
+    arr.push({
+      meal_type: mealType,
+      total_kcal: delta.kcal,
+      total_carbs_g: delta.carbs,
+      total_protein_g: delta.protein,
+      total_fat_g: delta.fat,
+    })
+  } else {
+    const t = { ...arr[idx] }
+    t.total_kcal = clampNumber(t.total_kcal) + delta.kcal
+    t.total_carbs_g = clampNumber(t.total_carbs_g) + delta.carbs
+    t.total_protein_g = clampNumber(t.total_protein_g) + delta.protein
+    t.total_fat_g = clampNumber(t.total_fat_g) + delta.fat
+    arr[idx] = t
+  }
+  return arr
+}
 
 // ------------------------------------
 // Debounce
@@ -128,7 +189,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 // ------------------------------------
-// Hook de dados (com correções de atualização)
+// Hook de dados (com Optimistic UI total)
 // ------------------------------------
 const useDietData = (userId?: UUID) => {
   const [loading, setLoading] = useState(true)
@@ -163,33 +224,13 @@ const useDietData = (userId?: UUID) => {
         itemsResult,
         summaryResult
       ] = await Promise.allSettled([
-        supabase.from('v_daily_intake')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('date', today)
-          .maybeSingle(), // PostgrestMaybeSingleResponse
-        supabase.from('v_daily_adherence')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('date', today)
-          .maybeSingle(),
-        supabase.from('v_meal_totals')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('date', today),
-        supabase.from('v_meal_items_nutrients')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('date', today),
-        supabase.from('v_weekly_summary')
-          .select('*')
-          .eq('user_id', userId)
-          .gte('date', sevenDaysAgo)
-          .lte('date', today)
-          .order('date', { ascending: true }),
+        supabase.from('v_daily_intake').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
+        supabase.from('v_daily_adherence').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
+        supabase.from('v_meal_totals').select('*').eq('user_id', userId).eq('date', today),
+        supabase.from('v_meal_items_nutrients').select('*').eq('user_id', userId).eq('date', today),
+        supabase.from('v_weekly_summary').select('*').eq('user_id', userId).gte('date', sevenDaysAgo).lte('date', today).order('date', { ascending: true }),
       ])
 
-      // ✅ Desempacotar .data corretamente e proteger contra undefined
       if (intakeResult.status === 'fulfilled') {
         const { data } = intakeResult.value as { data: DailyIntake | null }
         safeSetState(setDailyIntake, data ?? null)
@@ -229,16 +270,12 @@ const useDietData = (userId?: UUID) => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'meal_items', filter: `user_id=eq.${userId}` },
         async () => {
-          // Pequeno *debounce* para materializar views/cálculos
           await new Promise(r => setTimeout(r, 150))
           fetchAllData()
         }
       )
       .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return () => { supabase.removeChannel(channel) }
   }, [userId, fetchAllData])
 
   const recalculateGoals = useCallback(async () => {
@@ -262,77 +299,218 @@ const useDietData = (userId?: UUID) => {
     }
   }, [userId, fetchAllData])
 
+  // ------------------------------------
+  // ✅ Optimistic Add / Update / Delete com TOTAS + MACROS
+  // ------------------------------------
   const addFood = useCallback(async (foodData: {
     selectedMealType: MealType
-    selectedFood: { id: UUID; grams_per_unit?: number }
-    quantity: number   // unidades (ex.: 1 ovo = 1 unidade)
+    selectedFood: SelectedFood
+    quantity: number   // em unidades
   }) => {
     try {
       if (!userId) { toast.error('Sessão não encontrada. Faça login.'); return }
+
       const today = new Date().toISOString().split('T')[0]
       const qtyUnits = parseFloat(String(foodData.quantity)) || 0
-      const gramsPerUnit = foodData.selectedFood.grams_per_unit || 1
-      const gramsTotal = qtyUnits * gramsPerUnit
+      const gramsPerUnit = foodData.selectedFood.grams_per_100g ? undefined : foodData.selectedFood.grams_per_unit // apenas p/ clareza
+      const gramsTotal = gramsFromUnits(qtyUnits, foodData.selectedFood.grams_per_unit || 1)
 
-      const { error } = await supabase.from('meal_items').insert({
-        user_id: userId,
-        date: today,                          // se sua tabela não tiver "date", remova esta linha
+      const delta = computeDeltaFromFood(foodData.selectedFood, gramsTotal)
+
+      // snapshots para rollback
+      const sItems = [...mealItems]
+      const sTotals = [...mealTotals]
+      const sDaily = dailyIntake ? { ...dailyIntake } : null
+
+      // 1) Optimistic: item
+      const tempId = (`temp-${Date.now()}`) as UUID
+      const optimisticItem: MealItem = {
+        id: tempId,
         meal_type: foodData.selectedMealType,
         food_id: foodData.selectedFood.id,
-        quantity_grams: gramsTotal,          // ✅ seu schema
-        grams_total: gramsTotal,             // usado por views/cálculos
-      }).select('id') // select leve para confirmar inserção
+        food_name: foodData.selectedFood.name,
+        grams_per_unit: foodData.selectedFood.grams_per_unit,
+        quantity_grams: gramsTotal,
+        grams_total: gramsTotal,
+        item_kcal: Math.round(delta.kcal) || undefined,
+        __optimistic__: true,
+      }
+      setMealItems(prev => [...prev, optimisticItem])
+
+      // 2) Optimistic: totais da refeição + do dia
+      setMealTotals(prev => applyMealDelta(prev, foodData.selectedMealType, delta))
+      setDailyIntake(prev => applyDailyDelta(prev, delta))
+
+      // 3) Server insert
+      const { data, error } = await supabase.from('meal_items').insert({
+        user_id: userId,
+        date: today,
+        meal_type: foodData.selectedMealType,
+        food_id: foodData.selectedFood.id,
+        quantity_grams: gramsTotal,
+        grams_total: gramsTotal,
+      }).select('id').single()
 
       if (error) throw error
+
+      // 4) Troca tempId pelo real
+      if (data?.id) {
+        setMealItems(prev => prev.map(i => i.id === tempId ? { ...i, id: data.id, __optimistic__: false } : i))
+      }
+
       toast.success('Alimento adicionado! 🎉')
-      await new Promise(r => setTimeout(r, 200))
+      await new Promise(r => setTimeout(r, 120))
       await fetchAllData()
     } catch (error: any) {
+      // rollback completo
       console.error('Erro ao adicionar alimento:', error)
       toast.error(error?.message ? `Erro: ${error.message}` : 'Erro ao adicionar alimento.')
+      // restaurar snapshots
+      setMealItems(sItems => sItems) // TS no-op
+      setMealItems(mealItems)        // efetivo (captura do closure)
+      setMealTotals(sTotals => sTotals) // no-op
+      setMealTotals(mealTotals)
+      setDailyIntake(sDaily)
     }
-  }, [userId, fetchAllData])
+  }, [userId, mealItems, mealTotals, dailyIntake, fetchAllData])
 
   const updateFood = useCallback(async (
     itemId: UUID,
-    foodData: { selectedMealType: MealType; selectedFood: { id: UUID; grams_per_unit?: number }; quantity: number }
+    foodData: { selectedMealType: MealType; selectedFood: SelectedFood; quantity: number }
   ) => {
     try {
       if (!userId) { toast.error('Sessão não encontrada. Faça login.'); return }
-      const qtyUnits = parseFloat(String(foodData.quantity)) || 0
-      const gramsPerUnit = foodData.selectedFood.grams_per_unit || 1
-      const gramsTotal = qtyUnits * gramsPerUnit
 
+      // snapshots
+      const sItems = [...mealItems]
+      const sTotals = [...mealTotals]
+      const sDaily = dailyIntake ? { ...dailyIntake } : null
+
+      const current = mealItems.find(i => i.id === itemId)
+      if (!current) throw new Error('Item não encontrado.')
+
+      // delta negativo do item antigo
+      const oldGrams = clampNumber(current.quantity_grams ?? current.grams_total)
+      const oldFood = ((): SelectedFood => ({
+        id: current.food_id,
+        name: current.food_name,
+        grams_per_unit: current.grams_per_unit ?? 100,
+        // como o item antigo veio de view, pode não ter macros; se não souber, zera => efeito visual mínimo
+        kcal_per_100g: 0, carbs_g_per_100g: 0, protein_g_per_100g: 0, fat_g_per_100g: 0,
+      }))()
+      const oldDelta = computeDeltaFromFood(oldFood, oldGrams)
+
+      // novo delta
+      const qtyUnits = parseFloat(String(foodData.quantity)) || 0
+      const gramsTotal = gramsFromUnits(qtyUnits, foodData.selectedFood.grams_per_unit || 1)
+      const newDelta = computeDeltaFromFood(foodData.selectedFood, gramsTotal)
+
+      // 1) Optimistic: item
+      setMealItems(prev =>
+        prev.map(i =>
+          i.id === itemId
+            ? {
+                ...i,
+                meal_type: foodData.selectedMealType,
+                food_id: foodData.selectedFood.id,
+                food_name: foodData.selectedFood.name ?? i.food_name,
+                grams_per_unit: foodData.selectedFood.grams_per_unit,
+                quantity_grams: gramsTotal,
+                grams_total: gramsTotal,
+                item_kcal: Math.round(newDelta.kcal) || i.item_kcal,
+                __optimistic__: true,
+              }
+            : i
+        )
+      )
+
+      // 2) Optimistic: totais
+      // remove antigo da refeição anterior
+      setMealTotals(prev => applyMealDelta(prev, current.meal_type, {
+        kcal: -oldDelta.kcal, carbs: -oldDelta.carbs, protein: -oldDelta.protein, fat: -oldDelta.fat
+      }))
+      // adiciona novo na refeição atual
+      setMealTotals(prev => applyMealDelta(prev, foodData.selectedMealType, newDelta))
+
+      // dia: remove antigo + adiciona novo
+      setDailyIntake(prev => applyDailyDelta(applyDailyDelta(prev, {
+        kcal: -oldDelta.kcal, carbs: -oldDelta.carbs, protein: -oldDelta.protein, fat: -oldDelta.fat
+      }), newDelta))
+
+      // 3) Server update
       const { error } = await supabase.from('meal_items').update({
         meal_type: foodData.selectedMealType,
         food_id: foodData.selectedFood.id,
-        quantity_grams: gramsTotal,          // ✅
-        grams_total: gramsTotal,             // mantém compatibilidade
+        quantity_grams: gramsTotal,
+        grams_total: gramsTotal,
       }).eq('id', itemId)
 
       if (error) throw error
+
+      // 4) limpar flag
+      setMealItems(prev => prev.map(i => (i.id === itemId ? { ...i, __optimistic__: false } : i)))
+
       toast.success('Alimento atualizado! ✅')
-      await new Promise(r => setTimeout(r, 200))
+      await new Promise(r => setTimeout(r, 120))
       await fetchAllData()
     } catch (error: any) {
       console.error('Erro ao atualizar alimento:', error)
       toast.error(error?.message ? `Erro: ${error.message}` : 'Erro ao atualizar alimento.')
+      // rollback
+      setMealItems(mealItems)
+      setMealTotals(mealTotals)
+      setDailyIntake(dailyIntake)
     }
-  }, [userId, fetchAllData])
+  }, [userId, mealItems, mealTotals, dailyIntake, fetchAllData])
 
   const deleteFood = useCallback(async (itemId: UUID) => {
     try {
       if (!userId) { toast.error('Sessão não encontrada. Faça login.'); return }
+
+      const target = mealItems.find(i => i.id === itemId)
+      if (!target) return
+
+      // snapshots
+      const sItems = [...mealItems]
+      const sTotals = [...mealTotals]
+      const sDaily = dailyIntake ? { ...dailyIntake } : null
+
+      // delta negativo do item removido (sem macros = 0 caso desconhecido)
+      const grams = clampNumber(target.quantity_grams ?? target.grams_total)
+      const pseudoFood: SelectedFood = {
+        id: target.food_id,
+        name: target.food_name,
+        grams_per_unit: target.grams_per_unit ?? 100,
+        kcal_per_100g: 0, carbs_g_per_100g: 0, protein_g_per_100g: 0, fat_g_per_100g: 0,
+      }
+      const delta = computeDeltaFromFood(pseudoFood, grams)
+
+      // 1) Optimistic remove
+      setMealItems(prev => prev.filter(i => i.id !== itemId))
+      // 2) Optimistic totais
+      setMealTotals(prev => applyMealDelta(prev, target.meal_type, {
+        kcal: -delta.kcal, carbs: -delta.carbs, protein: -delta.protein, fat: -delta.fat
+      }))
+      setDailyIntake(prev => applyDailyDelta(prev, {
+        kcal: -delta.kcal, carbs: -delta.carbs, protein: -delta.protein, fat: -delta.fat
+      }))
+
+      // 3) Server delete
       const { error } = await supabase.from('meal_items').delete().eq('id', itemId)
       if (error) throw error
+
       toast.success('Alimento removido! 🗑️')
-      await new Promise(r => setTimeout(r, 150))
+      await new Promise(r => setTimeout(r, 120))
       await fetchAllData()
     } catch (error: any) {
       console.error('Erro ao remover alimento:', error)
       toast.error(error?.message ? `Erro: ${error.message}` : 'Erro ao remover alimento.')
+      // rollback
+      setMealItems(mealItems)
+      setMealTotals(mealTotals)
+      setDailyIntake(dailyIntake)
     }
-  }, [userId, fetchAllData])
+  }, [userId, mealItems, mealTotals, dailyIntake, fetchAllData])
 
   return {
     loading,
@@ -419,7 +597,7 @@ const PhoenixTree = memo(({ dailyIntake }: { dailyIntake: DailyIntake | null }) 
 
       <div className="mt-4 text-center">
         <p className="text-2xl font-bold text-foreground">
-          {progress.kcal} / {progress.kcalGoal} kcal
+          {Math.round(progress.kcal)} / {progress.kcalGoal} kcal
         </p>
         <p className={TOKENS.textMuted}>Sua jornada hoje</p>
       </div>
@@ -462,11 +640,11 @@ const MealCard = memo(({
               <h3 className="font-semibold text-lg tracking-tight text-foreground flex items-center gap-2">
                 <span aria-hidden>{meal.emoji}</span> {meal.name}
               </h3>
-              <p className={`${TOKENS.textMuted} text-sm`}>{data?.total_kcal || 0} kcal</p>
+              <p className={`${TOKENS.textMuted} text-sm`}>{Math.round(data?.total_kcal || 0)} kcal</p>
               <div className="flex gap-3 font-medium text-[12px] mt-1">
-                <span className="text-green-600 dark:text-green-400">C: {data?.total_carbs_g || 0}g</span>
-                <span className="text-blue-600 dark:text-blue-400">P: {data?.total_protein_g || 0}g</span>
-                <span className="text-phoenix-600 dark:text-phoenix-400">G: {data?.total_fat_g || 0}g</span>
+                <span className="text-green-600 dark:text-green-400">C: {Math.round(data?.total_carbs_g || 0)}g</span>
+                <span className="text-blue-600 dark:text-blue-400">P: {Math.round(data?.total_protein_g || 0)}g</span>
+                <span className="text-phoenix-600 dark:text-phoenix-400">G: {Math.round(data?.total_fat_g || 0)}g</span>
               </div>
             </div>
           </div>
@@ -485,11 +663,21 @@ const MealCard = memo(({
             >
               <div className="mt-4 pt-4 border-t border-border space-y-2">
                 {items.length > 0 ? items.map((item) => (
-                  <div key={item.id} className="group/item p-3 rounded-lg bg-accent/40 hover:bg-accent/60 transition-colors">
+                  <div
+                    key={item.id}
+                    className={`group/item p-3 rounded-lg transition-colors ${
+                      item.__optimistic__
+                        ? 'bg-yellow-100/50 dark:bg-yellow-900/20'
+                        : 'bg-accent/40 hover:bg-accent/60'
+                    }`}
+                    title={item.__optimistic__ ? 'Sincronizando…' : undefined}
+                  >
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-foreground">{item.food_name}</span>
+                      <span className="font-medium text-foreground">
+                        {item.food_name}{item.__optimistic__ ? ' (…)' : ''}
+                      </span>
                       <div className="flex items-center gap-3">
-                        <span className="font-semibold text-foreground">{item.item_kcal} kcal</span>
+                        <span className="font-semibold text-foreground">{item.item_kcal ?? '—'} kcal</span>
                         <div className="flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
                           <Button
                             size="icon"
@@ -497,6 +685,7 @@ const MealCard = memo(({
                             className="h-7 w-7 text-muted-foreground hover:text-blue-600"
                             onClick={(e) => { e.stopPropagation(); onEditItem(item) }}
                             aria-label="Editar alimento"
+                            disabled={item.__optimistic__}
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
@@ -506,6 +695,7 @@ const MealCard = memo(({
                             className="h-7 w-7 text-muted-foreground hover:text-red-600"
                             onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id) }}
                             aria-label="Remover alimento"
+                            disabled={item.__optimistic__}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -533,15 +723,15 @@ const FoodModal = memo(({
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
-  onAddFood: (data: { selectedMealType: MealType; selectedFood: { id: UUID; grams_per_unit?: number }; quantity: number }) => Promise<void>
-  onUpdateFood: (id: UUID, data: { selectedMealType: MealType; selectedFood: { id: UUID; grams_per_unit?: number }; quantity: number }) => Promise<void>
+  onAddFood: (data: { selectedMealType: MealType; selectedFood: SelectedFood; quantity: number }) => Promise<void>
+  onUpdateFood: (id: UUID, data: { selectedMealType: MealType; selectedFood: SelectedFood; quantity: number }) => Promise<void>
   itemToEdit: MealItem | null
 }) => {
   const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast')
   const [foodSearch, setFoodSearch] = useState('')
   const [foodResults, setFoodResults] = useState<any[]>([])
-  const [selectedFood, setSelectedFood] = useState<{ id: UUID; name: string; grams_per_unit?: number } | null>(null)
-  const [quantity, setQuantity] = useState<string>('') // em UNIDADES (ex.: 1 ovo = 1)
+  const [selectedFood, setSelectedFood] = useState<SelectedFood | null>(null)
+  const [quantity, setQuantity] = useState<string>('') // unidades
 
   const [isSaving, setIsSaving] = useState(false)
   const debouncedSearchTerm = useDebounce(foodSearch, 300)
@@ -550,9 +740,8 @@ const FoodModal = memo(({
     if (itemToEdit) {
       setSelectedMealType(itemToEdit.meal_type)
       setFoodSearch(itemToEdit.food_name)
+      // Nota: macros do itemToEdit podem não existir; buscamos do DB ao pesquisar
       setSelectedFood({ id: itemToEdit.food_id, name: itemToEdit.food_name, grams_per_unit: itemToEdit.grams_per_unit })
-
-      // Pré-preenche unidades a partir das gramas salvas
       const grams = itemToEdit.quantity_grams ?? itemToEdit.grams_total ?? 0
       const gpu = itemToEdit.grams_per_unit || 1
       const units = gpu ? grams / gpu : grams
@@ -569,7 +758,12 @@ const FoodModal = memo(({
   useEffect(() => {
     const searchFoods = async (q: string) => {
       if (q.length < 2) { setFoodResults([]); return }
-      const { data, error } = await supabase.from('foods').select('*').ilike('name', `%${q}%`).limit(10)
+      // traga macros para estimativas optimistas
+      const { data, error } = await supabase
+        .from('foods')
+        .select('id,name,grams_per_unit,kcal_per_100g,carbs_g_per_100g,protein_g_per_100g,fat_g_per_100g')
+        .ilike('name', `%${q}%`)
+        .limit(10)
       if (error) { console.error(error); toast.error('Erro ao buscar alimentos.'); return }
       setFoodResults(data || [])
     }
@@ -632,16 +826,20 @@ const FoodModal = memo(({
                 aria-autocomplete="list"
               />
               {foodResults.length > 0 && (
-                <div className="mt-2 max-h-48 overflow-y-auto border rounded-xl p-2 bg-accent/40">
+                <div className="mt-2 max-h-56 overflow-y-auto border rounded-xl p-2 bg-accent/40">
                   {foodResults.map(food => (
                     <button
                       type="button"
                       key={food.id}
                       onClick={() => {
                         setSelectedFood({
-                          id: food.id,                              // ✅ UUID real
+                          id: food.id,
                           name: food.name,
-                          grams_per_unit: food.grams_per_unit ?? 100
+                          grams_per_unit: food.grams_per_unit ?? 100,
+                          kcal_per_100g: food.kcal_per_100g ?? 0,
+                          carbs_g_per_100g: food.carbs_g_per_100g ?? 0,
+                          protein_g_per_100g: food.protein_g_per_100g ?? 0,
+                          fat_g_per_100g: food.fat_g_per_100g ?? 0,
                         })
                         setFoodSearch(food.name)
                         setFoodResults([])
@@ -649,7 +847,9 @@ const FoodModal = memo(({
                       className="w-full text-left p-3 rounded-md hover:bg-accent focus:bg-accent focus:outline-none"
                     >
                       <p className="font-medium text-foreground">{food.name}</p>
-                      <p className="text-xs opacity-70">{food.kcal_per_100g} kcal / 100g</p>
+                      <p className="text-xs opacity-70">
+                        {food.kcal_per_100g ?? 0} kcal / 100g — C:{food.carbs_g_per_100g ?? 0} P:{food.protein_g_per_100g ?? 0} G:{food.fat_g_per_100g ?? 0}
+                      </p>
                     </button>
                   ))}
                 </div>
@@ -747,10 +947,10 @@ export default function DietPlanner() {
       return next
     })
 
-  const handleAddFood = async (foodData: { selectedMealType: MealType; selectedFood: { id: UUID; grams_per_unit?: number }; quantity: number }) => {
+  const handleAddFood = async (foodData: { selectedMealType: MealType; selectedFood: SelectedFood; quantity: number }) => {
     await actions.addFood(foodData)
   }
-  const handleUpdateFood = async (itemId: UUID, foodData: { selectedMealType: MealType; selectedFood: { id: UUID; grams_per_unit?: number }; quantity: number }) => {
+  const handleUpdateFood = async (itemId: UUID, foodData: { selectedMealType: MealType; selectedFood: SelectedFood; quantity: number }) => {
     await actions.updateFood(itemId, foodData)
   }
   const handleEditClick = (item: MealItem) => {
