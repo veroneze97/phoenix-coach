@@ -1,14 +1,15 @@
 'use client'
 
 /**
- * DietPlanner – Versão UI/UX Premium
- * - Mantém toda a lógica original (hooks, estados, supabase, props, etc.)
- * - Refina layout, tipografia, cores, sombras, microinterações e consistência visual
- * - Melhora responsividade e acessibilidade
- * - Comentários marcam blocos-chave de UI/UX
+ * DietPlanner – UI/UX Premium (TypeScript)
+ * - Preserva 100% da lógica funcional original (Supabase, hooks, estados)
+ * - Tipagem mínima para evitar fricção
+ * - Visual premium (cards translúcidos, sombras, radius, microinterações)
+ * - Responsivo, acessível, comentado
  */
 
 import { useState, useEffect, useMemo, useCallback, memo } from 'react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 
@@ -19,14 +20,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
-// UX feedback
+// UX
 import { toast } from 'sonner'
 
-// Motion & Charts
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+// Ícones / Charts
 import {
   Flame,
-  Target,
   Sparkles,
   Coffee,
   Sun,
@@ -43,11 +42,62 @@ import {
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
+// Mantém seu componente existente
 import PhoenixOracle from './PhoenixOracle'
 
-// -------------------------------------------------------------------------------------------------
-// DESIGN TOKENS (apenas UI – fácil de manter/ajustar sem tocar na lógica)
-// -------------------------------------------------------------------------------------------------
+// ------------------------------------
+// Tipos mínimos (flexíveis)
+// ------------------------------------
+type UUID = string
+
+interface DailyIntake {
+  total_kcal?: number
+  goal_kcal?: number
+  total_carbs_g?: number
+  goal_carbs_g?: number
+  total_protein_g?: number
+  goal_protein_g?: number
+  total_fat_g?: number
+  goal_fat_g?: number
+}
+
+type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks'
+
+interface MealTotal {
+  meal_type: MealType
+  total_kcal?: number
+  total_carbs_g?: number
+  total_protein_g?: number
+  total_fat_g?: number
+}
+
+interface MealItem {
+  id: UUID
+  meal_type: MealType
+  food_id: UUID
+  food_name: string
+  grams_per_unit?: number
+  qty_units: number
+  grams_total?: number
+  item_kcal?: number
+}
+
+interface WeeklyPoint {
+  date: string
+  avg_adherence_pct?: number
+}
+
+interface MealConfig {
+  id: MealType
+  name: string
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+  emoji: string
+  gradient: string
+}
+
+// ------------------------------------
+// Design Tokens (consistência visual)
+// ------------------------------------
 const TOKENS = {
   radius: {
     lg: 'rounded-2xl',
@@ -60,25 +110,24 @@ const TOKENS = {
   blur: 'backdrop-blur-xl',
   border: 'border border-white/15 dark:border-zinc-700/40',
   surface: 'bg-white/70 dark:bg-zinc-900/60',
-  surfaceMuted: 'bg-white/55 dark:bg-zinc-900/50',
-  gradientAction: 'bg-gradient-to-r from-phoenix-500 to-phoenix-600',
   textMuted: 'text-muted-foreground',
+  gradientAction: 'bg-gradient-to-r from-phoenix-500 to-phoenix-600',
 }
 const cardBase = `${TOKENS.surface} ${TOKENS.blur} ${TOKENS.border} ${TOKENS.shadow.deep} ${TOKENS.radius.xl}`
 
-// Refeições (sem mudar IDs/lógica)
-const MEALS = [
+// Mantém IDs/lógica
+const MEALS: MealConfig[] = [
   { id: 'breakfast', name: 'Café da Manhã', icon: Coffee, emoji: '☀️', gradient: 'from-yellow-400 to-amber-400' },
   { id: 'lunch',     name: 'Almoço',         icon: Sun,    emoji: '🌞', gradient: 'from-amber-400 to-orange-400' },
   { id: 'dinner',    name: 'Jantar',         icon: Sunset, emoji: '🌙', gradient: 'from-indigo-400 to-blue-400' },
   { id: 'snacks',    name: 'Lanches',        icon: Cookie, emoji: '🍪', gradient: 'from-orange-400 to-red-400' },
 ]
 
-// -------------------------------------------------------------------------------------------------
-// Hook debounce (inalterado – performance para busca)
-// -------------------------------------------------------------------------------------------------
-function useDebounce(value: string, delay: number) {
-  const [debouncedValue, setDebouncedValue] = useState(value)
+// ------------------------------------
+// Debounce (busca de alimentos)
+// ------------------------------------
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value)
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedValue(value), delay)
     return () => clearTimeout(handler)
@@ -86,17 +135,17 @@ function useDebounce(value: string, delay: number) {
   return debouncedValue
 }
 
-// -------------------------------------------------------------------------------------------------
-// Hook de dados (mantém a mesma lógica de chamadas e estados)
-// -------------------------------------------------------------------------------------------------
-const useDietData = (userId?: string) => {
+// ------------------------------------
+// Hook de dados (lógica mantida)
+// ------------------------------------
+const useDietData = (userId?: UUID) => {
   const [loading, setLoading] = useState(true)
   const [recalculating, setRecalculating] = useState(false)
-  const [dailyIntake, setDailyIntake] = useState<any>(null)
-  const [dailyAdherence, setDailyAdherence] = useState<any>(null)
-  const [mealTotals, setMealTotals] = useState<any[]>([])
-  const [mealItems, setMealItems] = useState<any[]>([])
-  const [weeklySummary, setWeeklySummary] = useState<any[]>([])
+  const [dailyIntake, setDailyIntake] = useState<DailyIntake | null>(null)
+  const [dailyAdherence, setDailyAdherence] = useState<any>(null) // não usado aqui
+  const [mealTotals, setMealTotals] = useState<MealTotal[]>([])
+  const [mealItems, setMealItems] = useState<MealItem[]>([])
+  const [weeklySummary, setWeeklySummary] = useState<WeeklyPoint[]>([])
 
   const fetchAllData = useCallback(async () => {
     if (!userId) return
@@ -119,13 +168,13 @@ const useDietData = (userId?: string) => {
         supabase.from('v_weekly_summary').select('*').eq('user_id', userId).gte('date', sevenDaysAgo).lte('date', today).order('date', { ascending: true }),
       ])
 
-      if (intakeResult.status === 'fulfilled') setDailyIntake(intakeResult.value)
-      if (adherenceResult.status === 'fulfilled') setDailyAdherence(adherenceResult.value)
-      if (totalsResult.status === 'fulfilled') setMealTotals(totalsResult.value || [])
-      if (itemsResult.status === 'fulfilled') setMealItems(itemsResult.value || [])
-      if (summaryResult.status === 'fulfilled') setWeeklySummary(summaryResult.value)
+      if (intakeResult.status === 'fulfilled') setDailyIntake((intakeResult.value as any) || null)
+      if (adherenceResult.status === 'fulfilled') setDailyAdherence((adherenceResult.value as any) || null)
+      if (totalsResult.status === 'fulfilled') setMealTotals((totalsResult.value as any) || [])
+      if (itemsResult.status === 'fulfilled') setMealItems((itemsResult.value as any) || [])
+      if (summaryResult.status === 'fulfilled') setWeeklySummary((summaryResult.value as any) || [])
     } catch (error) {
-      console.error('Erro ao carregar dieta:', error)
+      console.error('Erro ao carregar dados da dieta:', error)
       toast.error('Erro ao carregar dados da dieta.')
     } finally {
       setLoading(false)
@@ -136,6 +185,7 @@ const useDietData = (userId?: string) => {
     fetchAllData()
   }, [fetchAllData])
 
+  // Realtime
   useEffect(() => {
     if (!userId) return
     const channel = supabase
@@ -158,26 +208,29 @@ const useDietData = (userId?: string) => {
         await fetchAllData()
       }
     } catch (error) {
-      console.error('Erro no recálculo:', error)
+      console.error('Erro ao recalcular metas:', error)
       toast.error('Erro ao recalcular metas.')
     } finally {
       setRecalculating(false)
     }
   }, [userId, fetchAllData])
 
-  const addFood = useCallback(async (foodData: any) => {
-    const { selectedMealType, selectedFood, quantity } = foodData
+  const addFood = useCallback(async (foodData: {
+    selectedMealType: MealType
+    selectedFood: { id: UUID; grams_per_unit?: number }
+    quantity: number
+  }) => {
     try {
       const today = new Date().toISOString().split('T')[0]
-      const qty = parseFloat(quantity) || 0
-      const gramsPerUnit = selectedFood.grams_per_unit || 1
+      const qty = parseFloat(String(foodData.quantity)) || 0
+      const gramsPerUnit = foodData.selectedFood.grams_per_unit || 1
       const gramsTotal = qty * gramsPerUnit
 
       const { error } = await supabase.from('meal_items').insert({
         user_id: userId,
         date: today,
-        meal_type: selectedMealType,
-        food_id: selectedFood.id,
+        meal_type: foodData.selectedMealType,
+        food_id: foodData.selectedFood.id,
         qty_units: qty,
         grams_total: gramsTotal,
       }).select()
@@ -187,21 +240,23 @@ const useDietData = (userId?: string) => {
       await new Promise(r => setTimeout(r, 400))
       await fetchAllData()
     } catch (error) {
-      console.error('Erro add food:', error)
+      console.error('Erro ao adicionar alimento:', error)
       toast.error('Erro ao adicionar alimento.')
     }
   }, [userId, fetchAllData])
 
-  const updateFood = useCallback(async (itemId: string, foodData: any) => {
-    const { selectedMealType, selectedFood, quantity } = foodData
+  const updateFood = useCallback(async (
+    itemId: UUID,
+    foodData: { selectedMealType: MealType; selectedFood: { id: UUID; grams_per_unit?: number }; quantity: number }
+  ) => {
     try {
-      const qty = parseFloat(quantity) || 0
-      const gramsPerUnit = selectedFood.grams_per_unit || 1
+      const qty = parseFloat(String(foodData.quantity)) || 0
+      const gramsPerUnit = foodData.selectedFood.grams_per_unit || 1
       const gramsTotal = qty * gramsPerUnit
 
       const { error } = await supabase.from('meal_items').update({
-        meal_type: selectedMealType,
-        food_id: selectedFood.id,
+        meal_type: foodData.selectedMealType,
+        food_id: foodData.selectedFood.id,
         qty_units: qty,
         grams_total: gramsTotal,
       }).eq('id', itemId)
@@ -211,12 +266,12 @@ const useDietData = (userId?: string) => {
       await new Promise(r => setTimeout(r, 400))
       await fetchAllData()
     } catch (error) {
-      console.error('Erro update food:', error)
+      console.error('Erro ao atualizar alimento:', error)
       toast.error('Erro ao atualizar alimento.')
     }
   }, [fetchAllData])
 
-  const deleteFood = useCallback(async (itemId: string) => {
+  const deleteFood = useCallback(async (itemId: UUID) => {
     try {
       const { error } = await supabase.from('meal_items').delete().eq('id', itemId)
       if (error) throw error
@@ -224,7 +279,7 @@ const useDietData = (userId?: string) => {
       await new Promise(r => setTimeout(r, 300))
       await fetchAllData()
     } catch (error) {
-      console.error('Erro delete food:', error)
+      console.error('Erro ao remover alimento:', error)
       toast.error('Erro ao remover alimento.')
     }
   }, [fetchAllData])
@@ -237,13 +292,13 @@ const useDietData = (userId?: string) => {
     mealTotals,
     mealItems,
     weeklySummary,
-    actions: { fetchAllData, recalculateGoals, addFood, updateFood, deleteFood }
+    actions: { fetchAllData, recalculateGoals, addFood, updateFood, deleteFood },
   }
 }
 
-// -------------------------------------------------------------------------------------------------
-// BG dinâmico – mantém ideia, suaviza opacidade e respeita “prefers-reduced-motion”
-// -------------------------------------------------------------------------------------------------
+// ------------------------------------
+// BG dinâmico (progress → opacidade)
+// ------------------------------------
 const PhoenixBackground = memo(({ progress }: { progress: number }) => {
   const opacity = Math.min(progress / 100, 0.8)
   return (
@@ -260,10 +315,10 @@ const PhoenixBackground = memo(({ progress }: { progress: number }) => {
   )
 })
 
-// -------------------------------------------------------------------------------------------------
-// “Árvore” de macro – UI refinada (sem mudar cálculos)
-// -------------------------------------------------------------------------------------------------
-const PhoenixTree = memo(({ dailyIntake }: { dailyIntake: any }) => {
+// ------------------------------------
+// “Árvore” de macros (visual)
+// ------------------------------------
+const PhoenixTree = memo(({ dailyIntake }: { dailyIntake: DailyIntake | null }) => {
   const reduceMotion = useReducedMotion()
   const progress = useMemo(() => {
     if (!dailyIntake) return { c: 0, p: 0, g: 0, kcal: 0, kcalGoal: 2000 }
@@ -272,7 +327,7 @@ const PhoenixTree = memo(({ dailyIntake }: { dailyIntake: any }) => {
       p: Math.min((dailyIntake.total_protein_g || 0) / (dailyIntake.goal_protein_g || 150), 1),
       g: Math.min((dailyIntake.total_fat_g || 0) / (dailyIntake.goal_fat_g || 65), 1),
       kcal: dailyIntake.total_kcal || 0,
-      kcalGoal: dailyIntake.goal_kcal || 2000
+      kcalGoal: dailyIntake.goal_kcal || 2000,
     }
   }, [dailyIntake])
 
@@ -316,20 +371,25 @@ const PhoenixTree = memo(({ dailyIntake }: { dailyIntake: any }) => {
         <p className="text-2xl font-bold text-foreground">
           {progress.kcal} / {progress.kcalGoal} kcal
         </p>
-        <p className={`${TOKENS.textMuted}`}>Sua jornada hoje</p>
+        <p className={TOKENS.textMuted}>Sua jornada hoje</p>
       </div>
     </div>
   )
 })
 
-// -------------------------------------------------------------------------------------------------
-// Card de Refeição – header clicável, itens com ações visíveis no hover, foco consistente
-// -------------------------------------------------------------------------------------------------
+// ------------------------------------
+// MealCard (expand/collapse + ações)
+// ------------------------------------
 const MealCard = memo(({
   meal, data, items, isExpanded, onToggle, onEditItem, onDeleteItem
 }: {
-  meal: any, data: any, items: any[], isExpanded: boolean,
-  onToggle: () => void, onEditItem: (item: any) => void, onDeleteItem: (id: string) => void
+  meal: MealConfig
+  data?: MealTotal | null
+  items: MealItem[]
+  isExpanded: boolean
+  onToggle: () => void
+  onEditItem: (item: MealItem) => void
+  onDeleteItem: (id: UUID) => void
 }) => {
   const Icon = meal.icon
   const idx = MEALS.findIndex(m => m.id === meal.id)
@@ -337,7 +397,7 @@ const MealCard = memo(({
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * idx }}>
       <Card className={`${cardBase} p-5 transition-all hover:-translate-y-0.5`}>
-        {/* Cabeçalho clicável para expandir/colapsar */}
+        {/* Cabeçalho clicável */}
         <button
           className="w-full flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-phoenix-500 focus-visible:rounded-xl"
           onClick={onToggle}
@@ -415,21 +475,22 @@ const MealCard = memo(({
   )
 })
 
-// -------------------------------------------------------------------------------------------------
-// Modal de Alimento – inputs/coerência visual + validações UX
-// -------------------------------------------------------------------------------------------------
+// ------------------------------------
+// Modal CRUD de Alimento
+// ------------------------------------
 const FoodModal = memo(({
   open, onOpenChange, onAddFood, onUpdateFood, itemToEdit
 }: {
-  open: boolean, onOpenChange: (v: boolean) => void,
-  onAddFood: (data: any) => Promise<void>,
-  onUpdateFood: (id: string, data: any) => Promise<void>,
-  itemToEdit: any
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  onAddFood: (data: { selectedMealType: MealType; selectedFood: { id: UUID; grams_per_unit?: number }; quantity: number }) => Promise<void>
+  onUpdateFood: (id: UUID, data: { selectedMealType: MealType; selectedFood: { id: UUID; grams_per_unit?: number }; quantity: number }) => Promise<void>
+  itemToEdit: MealItem | null
 }) => {
-  const [selectedMealType, setSelectedMealType] = useState('breakfast')
+  const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast')
   const [foodSearch, setFoodSearch] = useState('')
   const [foodResults, setFoodResults] = useState<any[]>([])
-  const [selectedFood, setSelectedFood] = useState<any>(null)
+  const [selectedFood, setSelectedFood] = useState<{ id: UUID; name: string; grams_per_unit?: number } | null>(null)
   const [quantity, setQuantity] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
 
@@ -440,7 +501,7 @@ const FoodModal = memo(({
       setSelectedMealType(itemToEdit.meal_type)
       setFoodSearch(itemToEdit.food_name)
       setSelectedFood({ id: itemToEdit.food_id, name: itemToEdit.food_name, grams_per_unit: itemToEdit.grams_per_unit })
-      setQuantity(itemToEdit.qty_units.toString())
+      setQuantity(String(itemToEdit.qty_units))
     } else {
       setSelectedMealType('breakfast')
       setFoodSearch('')
@@ -451,13 +512,13 @@ const FoodModal = memo(({
   }, [itemToEdit, open])
 
   useEffect(() => {
-    const run = async (q: string) => {
+    const searchFoods = async (q: string) => {
       if (q.length < 2) { setFoodResults([]); return }
       const { data, error } = await supabase.from('foods').select('*').ilike('name', `%${q}%`).limit(10)
       if (error) { console.error(error); toast.error('Erro ao buscar alimentos.'); return }
       setFoodResults(data || [])
     }
-    if (debouncedSearchTerm) run(debouncedSearchTerm)
+    if (debouncedSearchTerm) searchFoods(debouncedSearchTerm)
     else setFoodResults([])
   }, [debouncedSearchTerm])
 
@@ -521,7 +582,7 @@ const FoodModal = memo(({
                     <button
                       type="button"
                       key={food.id}
-                      onClick={() => { setSelectedFood(food); setFoodSearch(food.name); setFoodResults([]) }}
+                      onClick={() => { setSelectedFood({ id: food.id, name: food.name, grams_per_unit: food.grams_per_unit }); setFoodSearch(food.name); setFoodResults([]) }}
                       className="w-full text-left p-3 rounded-md hover:bg-accent focus:bg-accent focus:outline-none"
                     >
                       <p className="font-medium text-foreground">{food.name}</p>
@@ -569,16 +630,16 @@ const FoodModal = memo(({
   )
 })
 
-// -------------------------------------------------------------------------------------------------
-// Skeleton – feedback elegante de carregamento
-// -------------------------------------------------------------------------------------------------
+// ------------------------------------
+// Skeleton (loading premium)
+// ------------------------------------
 const SkeletonBlock = ({ className = '' }: { className?: string }) => (
   <div className={`animate-pulse bg-zinc-200/70 dark:bg-zinc-800 ${TOKENS.radius.lg} ${className}`} />
 )
 
-// -------------------------------------------------------------------------------------------------
-// Página principal – layout premium e responsivo
-// -------------------------------------------------------------------------------------------------
+// ------------------------------------
+// Página principal
+// ------------------------------------
 export default function DietPlanner() {
   const { user } = useAuth()
   const {
@@ -589,11 +650,11 @@ export default function DietPlanner() {
     mealItems,
     weeklySummary,
     actions,
-  } = useDietData(user?.id)
+  } = useDietData(user?.id as UUID | undefined)
 
-  const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set())
+  const [expandedMeals, setExpandedMeals] = useState<Set<MealType>>(new Set())
   const [isFoodModalOpen, setIsFoodModalOpen] = useState(false)
-  const [itemToEdit, setItemToEdit] = useState<any>(null)
+  const [itemToEdit, setItemToEdit] = useState<MealItem | null>(null)
 
   const calorieProgress = useMemo(() => {
     if (!dailyIntake) return 0
@@ -616,19 +677,28 @@ export default function DietPlanner() {
     return '🌅 Vamos começar! Cada passo conta.'
   }
 
-  const toggleMeal = (mealId: string) =>
+  const toggleMeal = (mealId: MealType) =>
     setExpandedMeals(prev => {
       const next = new Set(prev)
       next.has(mealId) ? next.delete(mealId) : next.add(mealId)
       return next
     })
 
-  const handleAddFood = async (foodData: any) => { await actions.addFood(foodData) }
-  const handleUpdateFood = async (itemId: string, foodData: any) => { await actions.updateFood(itemId, foodData) }
-  const handleEditClick = (item: any) => { setItemToEdit(item); setIsFoodModalOpen(true) }
-  const handleDeleteClick = (itemId: string) => { actions.deleteFood(itemId) }
+  const handleAddFood = async (foodData: { selectedMealType: MealType; selectedFood: { id: UUID; grams_per_unit?: number }; quantity: number }) => {
+    await actions.addFood(foodData)
+  }
+  const handleUpdateFood = async (itemId: UUID, foodData: { selectedMealType: MealType; selectedFood: { id: UUID; grams_per_unit?: number }; quantity: number }) => {
+    await actions.updateFood(itemId, foodData)
+  }
+  const handleEditClick = (item: MealItem) => {
+    setItemToEdit(item)
+    setIsFoodModalOpen(true)
+  }
+  const handleDeleteClick = (itemId: UUID) => {
+    actions.deleteFood(itemId)
+  }
 
-  // Loading elegante (sem mudar fluxo)
+  // Loading
   if (loading) {
     return (
       <div className="min-h-screen grid place-items-center px-6">
@@ -651,21 +721,20 @@ export default function DietPlanner() {
 
   return (
     <div className="relative min-h-screen overflow-hidden font-sans">
-      {/* BG dinâmico em função da progressão calórica */}
+      {/* BG dinâmico */}
       <PhoenixBackground progress={calorieProgress} />
 
       <div className="relative z-10 w-full px-6 sm:px-8 lg:px-12 py-8">
         <div className="max-w-screen-2xl mx-auto">
-          {/* Cabeçalho hero minimalista */}
+          {/* Cabeçalho */}
           <motion.header initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
               <div>
                 <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-foreground">Nutrição</h1>
-                <p className={`text-lg sm:text-xl ${TOKENS.textMuted} font-light`}>
+                <p className={`${TOKENS.textMuted} text-lg sm:text-xl font-light`}>
                   {new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}
                 </p>
               </div>
-              {/* Ação primária flutuante (UX clara) */}
               <Button
                 onClick={() => setIsFoodModalOpen(true)}
                 size="lg"
@@ -678,9 +747,8 @@ export default function DietPlanner() {
 
           {/* Grid principal */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 lg:gap-12">
-            {/* Coluna esquerda (2/3) */}
+            {/* Coluna esquerda */}
             <div className="xl:col-span-2 space-y-8">
-              {/* Hero Card – PhoenixTree + mensagem motivacional */}
               <Card className={`${cardBase} p-8 lg:p-12`}>
                 <PhoenixTree dailyIntake={dailyIntake} />
                 <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-xl text-center font-medium text-foreground max-w-md mt-6 mx-auto">
@@ -688,7 +756,6 @@ export default function DietPlanner() {
                 </motion.p>
               </Card>
 
-              {/* Oracle/insights – mantém seu componente */}
               <Card className={`${cardBase} p-8 lg:p-12`}>
                 <PhoenixOracle
                   dailyIntake={dailyIntake || {}}
@@ -697,7 +764,6 @@ export default function DietPlanner() {
                 />
               </Card>
 
-              {/* Análise semanal – linha premium */}
               {weeklySummary.length > 0 && (
                 <Card className={`${cardBase} p-8 lg:p-12`}>
                   <h3 className="text-2xl font-semibold text-foreground mb-6 flex items-center gap-3">
@@ -723,9 +789,8 @@ export default function DietPlanner() {
               )}
             </div>
 
-            {/* Coluna direita (1/3) */}
+            {/* Coluna direita */}
             <div className="xl:col-span-1 space-y-8">
-              {/* Lista de Refeições */}
               <Card className={`${cardBase} p-6`}>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-semibold">Refeições</h2>
@@ -738,7 +803,6 @@ export default function DietPlanner() {
                     <Plus className="w-4 h-4 mr-1.5" /> Adicionar
                   </Button>
                 </div>
-
                 <div className="space-y-4">
                   {MEALS.map(meal => {
                     const data = Array.isArray(mealTotals) ? mealTotals.find(m => m.meal_type === meal.id) : null
@@ -747,7 +811,7 @@ export default function DietPlanner() {
                       <MealCard
                         key={meal.id}
                         meal={meal}
-                        data={data}
+                        data={data || null}
                         items={items}
                         isExpanded={expandedMeals.has(meal.id)}
                         onToggle={() => toggleMeal(meal.id)}
@@ -759,7 +823,6 @@ export default function DietPlanner() {
                 </div>
               </Card>
 
-              {/* Painel de ações rápidas */}
               <Card className={`${cardBase} p-6 text-center`}>
                 <Sparkles className="w-10 h-10 text-phoenix-500 mx-auto mb-3" />
                 <h3 className="text-xl font-semibold mb-1">Nutricionista Phoenix</h3>
@@ -789,7 +852,7 @@ export default function DietPlanner() {
         </div>
       </div>
 
-      {/* Modal de CRUD de alimento */}
+      {/* Modal */}
       <FoodModal
         open={isFoodModalOpen}
         onOpenChange={(open) => { setIsFoodModalOpen(open); if (!open) setItemToEdit(null) }}
