@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Flame, CheckCircle2, XCircle, ArrowLeft, ArrowRight } from 'lucide-react'
+import {
+  Flame,
+  CheckCircle2,
+  XCircle,
+  ArrowLeft,
+  ArrowRight,
+} from 'lucide-react'
 import { format, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useAuth } from '@/lib/auth-context'
@@ -40,10 +46,18 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
   const [isLibraryOpen, setIsLibraryOpen] = useState(false)
   const [status, setStatus] = useState<'planned' | 'done' | 'missed'>('planned')
 
+  // 🔹 Atualiza status local quando o treino muda
   useEffect(() => {
     if (workout?.status) setStatus(workout.status)
+    else setStatus('planned')
   }, [workout])
 
+  // 🔹 Recarrega treino ao mudar de data
+  useEffect(() => {
+    if (user) loadWorkout()
+  }, [selectedDate])
+
+  // 🔹 Aplica template
   const handleApplyTemplate = async (templateKey: string) => {
     if (!workout) return
     if (exercises.length > 0) {
@@ -87,10 +101,14 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
 
   // ⏩ Navegação entre dias
   const changeDay = (direction: 'prev' | 'next') => {
-    const newDate = addDays(selectedDate, direction === 'prev' ? -1 : 1)
-    setSelectedDate(newDate)
-    loadWorkout() // refaz a busca do treino
+    setStatus('planned') // limpa status enquanto troca o dia
+    setSelectedDate((prev) => addDays(prev, direction === 'prev' ? -1 : 1))
   }
+
+  // 📆 Data formatada
+  const formattedDate = format(selectedDate, "EEEE, dd 'de' MMMM", {
+    locale: ptBR,
+  })
 
   if (loading) {
     return (
@@ -100,8 +118,6 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
       </div>
     )
   }
-
-  const formattedDate = format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })
 
   return (
     <div className="space-y-4 pb-28">
@@ -245,6 +261,7 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
         </Card>
       )}
 
+      {/* 📚 Modal da biblioteca */}
       <ExerciseLibraryDialog
         isOpen={isLibraryOpen}
         setIsOpen={setIsLibraryOpen}

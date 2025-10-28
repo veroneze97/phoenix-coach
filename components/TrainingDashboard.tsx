@@ -6,16 +6,25 @@
  * Página principal do módulo de Treinos (Phoenix Coach)
  * - Mostra agenda semanal com status dos treinos
  * - Botão "Criar treino" (modal) -> cria ou repete treinos via RPCs
+ * - Integra com WeeklyStatsCard
  * - Navega para o TrainingEditor selecionando uma data
  * =============================================
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, startOfWeek, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { motion, AnimatePresence } from 'framer-motion'
-import { CalendarDays, PlusCircle, Flame, CheckCircle2, XCircle } from 'lucide-react'
+import { motion } from 'framer-motion'
+import PhoenixScoreCard from '@/components/training/PhoenixScoreCard'
+import PhoenixScoreHistory from '@/components/training/PhoenixScoreHistory'
+import {
+  CalendarDays,
+  PlusCircle,
+  Flame,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react'
 
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
@@ -32,6 +41,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 
+// 📊 novo componente de métricas
+import WeeklyStatsCard from '@/components/training/WeeklyStatsCard'
+
 export default function TrainingDashboard() {
   const { user } = useAuth()
   const router = useRouter()
@@ -39,6 +51,7 @@ export default function TrainingDashboard() {
   const [weekDates, setWeekDates] = useState<Date[]>([])
   const [workouts, setWorkouts] = useState<Record<string, any>>({})
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [repeatData, setRepeatData] = useState({
     copy_from: '',
     weekday: 2,
@@ -54,40 +67,46 @@ export default function TrainingDashboard() {
     setWeekDates(days)
   }, [])
 
-  // 🔹 carrega treinos da semana
-  useEffect(() => {
+  // 🔹 função para carregar treinos da semana
+  const fetchWeek = useCallback(async () => {
     if (!user) return
-    const fetchWeek = async () => {
-      const start = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
-      const end = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 6), 'yyyy-MM-dd')
+    setLoading(true)
+    const start = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    const end = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 6), 'yyyy-MM-dd')
 
-      const { data, error } = await supabase
-        .from('workouts')
-        .select('date,status')
-        .eq('user_id', user.id)
-        .gte('date', start)
-        .lte('date', end)
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('date,status')
+      .eq('user_id', user.id)
+      .gte('date', start)
+      .lte('date', end)
 
-      if (error) console.error(error)
-      else {
-        const map: Record<string, any> = {}
-        data.forEach((w) => (map[w.date] = w))
-        setWorkouts(map)
-      }
+    if (error) {
+      console.error(error)
+    } else {
+      const map: Record<string, any> = {}
+      data.forEach((w) => (map[w.date] = w))
+      setWorkouts(map)
     }
-    fetchWeek()
+    setLoading(false)
   }, [user])
+
+  // 🔹 carrega treinos ao montar
+  useEffect(() => {
+    if (user) fetchWeek()
+  }, [user, fetchWeek])
 
   // 🔹 cria treino de hoje
   const handleCreateToday = async () => {
     if (!user) return
     try {
-      const { data, error } = await supabase.rpc('get_or_create_workout', {
+      const { error } = await supabase.rpc('get_or_create_workout', {
         p_user: user.id,
         p_date: format(new Date(), 'yyyy-MM-dd'),
       })
       if (error) throw error
       toast.success('Treino de hoje criado!')
+      fetchWeek()
       router.push(`/training/editor?date=${format(new Date(), 'yyyy-MM-dd')}`)
     } catch (err) {
       toast.error('Erro ao criar treino de hoje')
@@ -111,6 +130,7 @@ export default function TrainingDashboard() {
       if (error) throw error
       toast.success(`Treinos repetidos (${data} dias atualizados)`)
       setIsModalOpen(false)
+      fetchWeek()
     } catch (err) {
       toast.error('Erro ao repetir treinos')
       console.error(err)
@@ -131,16 +151,20 @@ export default function TrainingDashboard() {
         ...prev,
         [date]: { ...prev[date], status },
       }))
-      toast.success(`Treino de ${format(new Date(date), 'dd/MM')} marcado como ${status}`)
+      toast.success(
+        `Treino de ${format(new Date(date), 'dd/MM')} marcado como ${
+          status === 'done' ? 'concluído' : 'perdido'
+        }`
+      )
     } catch (err) {
       toast.error('Erro ao atualizar status')
       console.error(err)
     }
   }
 
-  // 🔹 render
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-8 pb-20">
+      {/* Cabeçalho */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <CalendarDays className="w-6 h-6 text-phoenix-amber" />
@@ -155,6 +179,16 @@ export default function TrainingDashboard() {
         </Button>
       </div>
 
+      {/* 🔥 Phoenix Score */}
+      <PhoenixScoreCard />
+
+      {/* 📈 Histórico de Score */}
+      <PhoenixScoreHistory />
+
+
+      {/* 📊 Estatísticas semanais */}
+      <WeeklyStatsCard />
+
       {/* Semana */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {weekDates.map((date, i) => {
@@ -166,18 +200,22 @@ export default function TrainingDashboard() {
             format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
 
           const statusIcon =
-            status === 'done'
-              ? <CheckCircle2 className="w-5 h-5 text-green-500" />
-              : status === 'missed'
-              ? <XCircle className="w-5 h-5 text-red-500" />
-              : <Flame className="w-5 h-5 text-phoenix-amber animate-pulse" />
+            status === 'done' ? (
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+            ) : status === 'missed' ? (
+              <XCircle className="w-5 h-5 text-red-500" />
+            ) : (
+              <Flame className="w-5 h-5 text-phoenix-amber animate-pulse" />
+            )
 
           return (
             <motion.div
               key={i}
               whileHover={{ scale: 1.05 }}
-              className={`rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer border ${
-                isToday ? 'border-phoenix-amber bg-phoenix-amber/10' : 'border-gray-200'
+              className={`rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer border transition-all ${
+                isToday
+                  ? 'border-phoenix-amber bg-phoenix-amber/10'
+                  : 'border-gray-200 hover:bg-muted/50'
               }`}
               onClick={() => router.push(`/training/editor?date=${iso}`)}
             >
@@ -186,10 +224,24 @@ export default function TrainingDashboard() {
               <div className="mt-2">{statusIcon}</div>
 
               <div className="flex gap-1 mt-2">
-                <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleStatus(iso, 'done') }}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleStatus(iso, 'done')
+                  }}
+                >
                   ✅
                 </Button>
-                <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleStatus(iso, 'missed') }}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleStatus(iso, 'missed')
+                  }}
+                >
                   ❌
                 </Button>
               </div>
@@ -204,7 +256,8 @@ export default function TrainingDashboard() {
           <DialogHeader>
             <DialogTitle>Criar ou repetir treinos</DialogTitle>
             <DialogDescription>
-              Crie o treino de hoje ou replique um treino existente em dias da semana.
+              Crie o treino de hoje ou replique um treino existente em dias da
+              semana.
             </DialogDescription>
           </DialogHeader>
 
@@ -217,7 +270,9 @@ export default function TrainingDashboard() {
             </Button>
 
             <div className="border-t pt-2 space-y-3">
-              <Label className="text-sm font-medium">Data modelo (copiar de)</Label>
+              <Label className="text-sm font-medium">
+                Data modelo (copiar de)
+              </Label>
               <Input
                 type="date"
                 value={repeatData.copy_from}
