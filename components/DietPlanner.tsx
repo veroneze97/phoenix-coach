@@ -1,12 +1,11 @@
 'use client'
 
 /**
- * DietPlanner – UI/UX Premium (TypeScript)
- * - Mantém a lógica funcional (Supabase, hooks, estados)
- * - Schema compatível: quantity_grams + grams_total (+ meal_type enum, date)
- * - Visual premium, responsivo e comentado
- * - ✅ Optimistic UI completo (itens + totais + macros) com rollback em falhas
- * - ✅ Realtime e refetch coerentes com views
+ * DietPlanner — Phoenix Coach (UI/UX Premium)
+ * - Donut de Progresso (kcal) + análise semanal (Recharts)
+ * - Layout 2 colunas (desktop) / 1 coluna (mobile)
+ * - Optimistic UI total (add/update/delete) + rollback
+ * - Realtime Supabase + refetch coerente
  */
 
 import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react'
@@ -39,10 +38,11 @@ import {
   Search,
   Edit2,
   Trash2,
+  Flame,
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
-// Componente existente
+// (opcional) se você já usa esse componente, mantenha; senão, pode remover a import abaixo.
 import PhoenixOracle from './PhoenixOracle'
 
 // ------------------------------------
@@ -107,7 +107,7 @@ type SelectedFood = {
 }
 
 // ------------------------------------
-// Design Tokens
+// Design Tokens (sem depender de cores customizadas)
 // ------------------------------------
 const TOKENS = {
   radius: { lg: 'rounded-2xl', xl: 'rounded-3xl' },
@@ -116,41 +116,42 @@ const TOKENS = {
   border: 'border border-white/15 dark:border-zinc-700/40',
   surface: 'bg-white/70 dark:bg-zinc-900/60',
   textMuted: 'text-muted-foreground',
-  gradientAction: 'bg-gradient-to-r from-phoenix-500 to-phoenix-600',
+  gradientAction: 'bg-gradient-to-r from-amber-500 to-orange-600',
 }
 const cardBase = `${TOKENS.surface} ${TOKENS.blur} ${TOKENS.border} ${TOKENS.shadow.deep} ${TOKENS.radius.xl}`
 
 const MEALS: MealConfig[] = [
   { id: 'breakfast', name: 'Café da Manhã', icon: Coffee, emoji: '☀️', gradient: 'from-yellow-400 to-amber-400' },
-  { id: 'lunch',     name: 'Alçoço',         icon: Sun,    emoji: '🌞', gradient: 'from-amber-400 to-orange-400' },
+  { id: 'lunch',     name: 'Almoço',         icon: Sun,    emoji: '🌞', gradient: 'from-amber-400 to-orange-400' },
   { id: 'dinner',    name: 'Jantar',         icon: Sunset, emoji: '🌙', gradient: 'from-indigo-400 to-blue-400' },
   { id: 'snacks',    name: 'Lanches',        icon: Cookie, emoji: '🍪', gradient: 'from-orange-400 to-red-400' },
 ]
 
 // ------------------------------------
-// Helpers nutricionais (estimativas rápidas)
+// Helpers nutricionais
 // ------------------------------------
-function clampNumber(n?: number) { return Number.isFinite(n) ? (n as number) : 0 }
+function num(n?: number) { return Number.isFinite(n) ? (n as number) : 0 }
 function gramsFromUnits(units: number, gramsPerUnit?: number) {
-  const gpu = clampNumber(gramsPerUnit) || 1
+  const gpu = gramsPerUnit && gramsPerUnit > 0 ? gramsPerUnit : 1
   return units * gpu
 }
 
 function computeDeltaFromFood(food: SelectedFood, gramsTotal: number) {
   const factor = gramsTotal / 100
-  const kcal = clampNumber(food.kcal_per_100g) * factor
-  const carbs = clampNumber(food.carbs_g_per_100g) * factor
-  const protein = clampNumber(food.protein_g_per_100g) * factor
-  const fat = clampNumber(food.fat_g_per_100g) * factor
-  return { kcal, carbs, protein, fat }
+  return {
+    kcal: num(food.kcal_per_100g) * factor,
+    carbs: num(food.carbs_g_per_100g) * factor,
+    protein: num(food.protein_g_per_100g) * factor,
+    fat: num(food.fat_g_per_100g) * factor,
+  }
 }
 
 function applyDailyDelta(d: DailyIntake | null, delta: { kcal: number; carbs: number; protein: number; fat: number }) {
   const base: DailyIntake = d ? { ...d } : {}
-  base.total_kcal = clampNumber(base.total_kcal) + delta.kcal
-  base.total_carbs_g = clampNumber(base.total_carbs_g) + delta.carbs
-  base.total_protein_g = clampNumber(base.total_protein_g) + delta.protein
-  base.total_fat_g = clampNumber(base.total_fat_g) + delta.fat
+  base.total_kcal = num(base.total_kcal) + delta.kcal
+  base.total_carbs_g = num(base.total_carbs_g) + delta.carbs
+  base.total_protein_g = num(base.total_protein_g) + delta.protein
+  base.total_fat_g = num(base.total_fat_g) + delta.fat
   return base
 }
 
@@ -167,10 +168,10 @@ function applyMealDelta(totals: MealTotal[], mealType: MealType, delta: { kcal: 
     })
   } else {
     const t = { ...arr[idx] }
-    t.total_kcal = clampNumber(t.total_kcal) + delta.kcal
-    t.total_carbs_g = clampNumber(t.total_carbs_g) + delta.carbs
-    t.total_protein_g = clampNumber(t.total_protein_g) + delta.protein
-    t.total_fat_g = clampNumber(t.total_fat_g) + delta.fat
+    t.total_kcal = num(t.total_kcal) + delta.kcal
+    t.total_carbs_g = num(t.total_carbs_g) + delta.carbs
+    t.total_protein_g = num(t.total_protein_g) + delta.protein
+    t.total_fat_g = num(t.total_fat_g) + delta.fat
     arr[idx] = t
   }
   return arr
@@ -299,30 +300,26 @@ const useDietData = (userId?: UUID) => {
     }
   }, [userId, fetchAllData])
 
-  // ------------------------------------
-  // ✅ Optimistic Add / Update / Delete com TOTAS + MACROS
-  // ------------------------------------
+  // Optimistic CRUD --------------------------------
   const addFood = useCallback(async (foodData: {
     selectedMealType: MealType
     selectedFood: SelectedFood
-    quantity: number   // em unidades
+    quantity: number // unidades
   }) => {
     try {
       if (!userId) { toast.error('Sessão não encontrada. Faça login.'); return }
 
       const today = new Date().toISOString().split('T')[0]
       const qtyUnits = parseFloat(String(foodData.quantity)) || 0
-      const gramsPerUnit = foodData.selectedFood.grams_per_100g ? undefined : foodData.selectedFood.grams_per_unit // apenas p/ clareza
       const gramsTotal = gramsFromUnits(qtyUnits, foodData.selectedFood.grams_per_unit || 1)
-
       const delta = computeDeltaFromFood(foodData.selectedFood, gramsTotal)
 
-      // snapshots para rollback
+      // snapshots
       const sItems = [...mealItems]
       const sTotals = [...mealTotals]
       const sDaily = dailyIntake ? { ...dailyIntake } : null
 
-      // 1) Optimistic: item
+      // 1) optimistic item
       const tempId = (`temp-${Date.now()}`) as UUID
       const optimisticItem: MealItem = {
         id: tempId,
@@ -337,11 +334,11 @@ const useDietData = (userId?: UUID) => {
       }
       setMealItems(prev => [...prev, optimisticItem])
 
-      // 2) Optimistic: totais da refeição + do dia
+      // 2) optimistic totals
       setMealTotals(prev => applyMealDelta(prev, foodData.selectedMealType, delta))
       setDailyIntake(prev => applyDailyDelta(prev, delta))
 
-      // 3) Server insert
+      // 3) server
       const { data, error } = await supabase.from('meal_items').insert({
         user_id: userId,
         date: today,
@@ -353,7 +350,7 @@ const useDietData = (userId?: UUID) => {
 
       if (error) throw error
 
-      // 4) Troca tempId pelo real
+      // 4) replace temp id
       if (data?.id) {
         setMealItems(prev => prev.map(i => i.id === tempId ? { ...i, id: data.id, __optimistic__: false } : i))
       }
@@ -362,15 +359,12 @@ const useDietData = (userId?: UUID) => {
       await new Promise(r => setTimeout(r, 120))
       await fetchAllData()
     } catch (error: any) {
-      // rollback completo
       console.error('Erro ao adicionar alimento:', error)
       toast.error(error?.message ? `Erro: ${error.message}` : 'Erro ao adicionar alimento.')
-      // restaurar snapshots
-      setMealItems(sItems => sItems) // TS no-op
-      setMealItems(mealItems)        // efetivo (captura do closure)
-      setMealTotals(sTotals => sTotals) // no-op
+      // rollback
+      setMealItems(mealItems)
       setMealTotals(mealTotals)
-      setDailyIntake(sDaily)
+      setDailyIntake(dailyIntake)
     }
   }, [userId, mealItems, mealTotals, dailyIntake, fetchAllData])
 
@@ -389,15 +383,14 @@ const useDietData = (userId?: UUID) => {
       const current = mealItems.find(i => i.id === itemId)
       if (!current) throw new Error('Item não encontrado.')
 
-      // delta negativo do item antigo
-      const oldGrams = clampNumber(current.quantity_grams ?? current.grams_total)
-      const oldFood = ((): SelectedFood => ({
+      // delta antigo (pseudomacros = 0 se desconhecido)
+      const oldGrams = num(current.quantity_grams ?? current.grams_total)
+      const oldFood: SelectedFood = {
         id: current.food_id,
         name: current.food_name,
         grams_per_unit: current.grams_per_unit ?? 100,
-        // como o item antigo veio de view, pode não ter macros; se não souber, zera => efeito visual mínimo
         kcal_per_100g: 0, carbs_g_per_100g: 0, protein_g_per_100g: 0, fat_g_per_100g: 0,
-      }))()
+      }
       const oldDelta = computeDeltaFromFood(oldFood, oldGrams)
 
       // novo delta
@@ -405,7 +398,7 @@ const useDietData = (userId?: UUID) => {
       const gramsTotal = gramsFromUnits(qtyUnits, foodData.selectedFood.grams_per_unit || 1)
       const newDelta = computeDeltaFromFood(foodData.selectedFood, gramsTotal)
 
-      // 1) Optimistic: item
+      // 1) optimistic item
       setMealItems(prev =>
         prev.map(i =>
           i.id === itemId
@@ -424,20 +417,17 @@ const useDietData = (userId?: UUID) => {
         )
       )
 
-      // 2) Optimistic: totais
-      // remove antigo da refeição anterior
+      // 2) optimistic totals (remove antigo + adiciona novo)
       setMealTotals(prev => applyMealDelta(prev, current.meal_type, {
         kcal: -oldDelta.kcal, carbs: -oldDelta.carbs, protein: -oldDelta.protein, fat: -oldDelta.fat
       }))
-      // adiciona novo na refeição atual
       setMealTotals(prev => applyMealDelta(prev, foodData.selectedMealType, newDelta))
 
-      // dia: remove antigo + adiciona novo
       setDailyIntake(prev => applyDailyDelta(applyDailyDelta(prev, {
         kcal: -oldDelta.kcal, carbs: -oldDelta.carbs, protein: -oldDelta.protein, fat: -oldDelta.fat
       }), newDelta))
 
-      // 3) Server update
+      // 3) server
       const { error } = await supabase.from('meal_items').update({
         meal_type: foodData.selectedMealType,
         food_id: foodData.selectedFood.id,
@@ -456,10 +446,7 @@ const useDietData = (userId?: UUID) => {
     } catch (error: any) {
       console.error('Erro ao atualizar alimento:', error)
       toast.error(error?.message ? `Erro: ${error.message}` : 'Erro ao atualizar alimento.')
-      // rollback
-      setMealItems(mealItems)
-      setMealTotals(mealTotals)
-      setDailyIntake(dailyIntake)
+      setMealItems(mealItems); setMealTotals(mealTotals); setDailyIntake(dailyIntake)
     }
   }, [userId, mealItems, mealTotals, dailyIntake, fetchAllData])
 
@@ -470,13 +457,7 @@ const useDietData = (userId?: UUID) => {
       const target = mealItems.find(i => i.id === itemId)
       if (!target) return
 
-      // snapshots
-      const sItems = [...mealItems]
-      const sTotals = [...mealTotals]
-      const sDaily = dailyIntake ? { ...dailyIntake } : null
-
-      // delta negativo do item removido (sem macros = 0 caso desconhecido)
-      const grams = clampNumber(target.quantity_grams ?? target.grams_total)
+      const grams = num(target.quantity_grams ?? target.grams_total)
       const pseudoFood: SelectedFood = {
         id: target.food_id,
         name: target.food_name,
@@ -485,9 +466,8 @@ const useDietData = (userId?: UUID) => {
       }
       const delta = computeDeltaFromFood(pseudoFood, grams)
 
-      // 1) Optimistic remove
+      // optimistic
       setMealItems(prev => prev.filter(i => i.id !== itemId))
-      // 2) Optimistic totais
       setMealTotals(prev => applyMealDelta(prev, target.meal_type, {
         kcal: -delta.kcal, carbs: -delta.carbs, protein: -delta.protein, fat: -delta.fat
       }))
@@ -495,7 +475,6 @@ const useDietData = (userId?: UUID) => {
         kcal: -delta.kcal, carbs: -delta.carbs, protein: -delta.protein, fat: -delta.fat
       }))
 
-      // 3) Server delete
       const { error } = await supabase.from('meal_items').delete().eq('id', itemId)
       if (error) throw error
 
@@ -505,10 +484,7 @@ const useDietData = (userId?: UUID) => {
     } catch (error: any) {
       console.error('Erro ao remover alimento:', error)
       toast.error(error?.message ? `Erro: ${error.message}` : 'Erro ao remover alimento.')
-      // rollback
-      setMealItems(mealItems)
-      setMealTotals(mealTotals)
-      setDailyIntake(dailyIntake)
+      setMealItems(mealItems); setMealTotals(mealTotals); setDailyIntake(dailyIntake)
     }
   }, [userId, mealItems, mealTotals, dailyIntake, fetchAllData])
 
@@ -525,7 +501,7 @@ const useDietData = (userId?: UUID) => {
 }
 
 // ------------------------------------
-// BG dinâmico
+// BG dinâmico (glow Phoenix)
 // ------------------------------------
 const PhoenixBackground = memo(({ progress }: { progress: number }) => {
   const opacity = Math.min(progress / 100, 0.8)
@@ -544,62 +520,49 @@ const PhoenixBackground = memo(({ progress }: { progress: number }) => {
 })
 
 // ------------------------------------
-// “Árvore” de macros
+// Donut de progresso (kcal)
 // ------------------------------------
-const PhoenixTree = memo(({ dailyIntake }: { dailyIntake: DailyIntake | null }) => {
-  const reduceMotion = useReducedMotion()
-  const progress = useMemo(() => {
-    if (!dailyIntake) return { c: 0, p: 0, g: 0, kcal: 0, kcalGoal: 2000 }
-    return {
-      c: Math.min((dailyIntake.total_carbs_g || 0) / (dailyIntake.goal_carbs_g || 250), 1),
-      p: Math.min((dailyIntake.total_protein_g || 0) / (dailyIntake.goal_protein_g || 150), 1),
-      g: Math.min((dailyIntake.total_fat_g || 0) / (dailyIntake.goal_fat_g || 65), 1),
-      kcal: dailyIntake.total_kcal || 0,
-      kcalGoal: dailyIntake.goal_kcal || 2000,
-    }
-  }, [dailyIntake])
+const DonutProgress = memo(({ current, goal }: { current: number; goal: number }) => {
+  const reduce = useReducedMotion()
+  const pct = Math.max(0, Math.min(100, goal > 0 ? (current / goal) * 100 : 0))
+  const size = 220
+  const stroke = 16
+  const r = (size - stroke) / 2
+  const c = 2 * Math.PI * r
+  const offset = c - (pct / 100) * c
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-96">
-      <svg width="320" height="320" viewBox="0 0 300 300" className="w-full h-full">
-        <rect x="140" y="180" width="20" height="120" fill="hsl(24, 36%, 30%)" rx="6" />
-        <motion.path
-          d="M 150 180 Q 120 150 100 120"
-          stroke="hsl(var(--phoenix-400))"
-          strokeWidth="4"
-          fill="none"
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="rotate-[-90deg]">
+        <circle cx={size/2} cy={size/2} r={r} stroke="rgba(0,0,0,0.08)" strokeWidth={stroke} fill="none" />
+        <motion.circle
+          cx={size/2}
+          cy={size/2}
+          r={r}
+          stroke="url(#phoenix-grad)"
+          strokeWidth={stroke}
           strokeLinecap="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: progress.c }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 1.8, ease: 'easeOut' }}
-        />
-        <motion.path
-          d="M 150 160 Q 180 130 200 100"
-          stroke="hsl(var(--phoenix-500))"
-          strokeWidth="4"
           fill="none"
-          strokeLinecap="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: progress.p }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 1.8, delay: 0.15, ease: 'easeOut' }}
+          initial={{ strokeDasharray: c, strokeDashoffset: c }}
+          animate={{ strokeDashoffset: offset }}
+          transition={reduce ? { duration: 0 } : { duration: 1.2, ease: 'easeOut' }}
+          style={{ filter: 'drop-shadow(0 2px 8px rgba(251,146,60,.35))' }}
         />
-        <motion.path
-          d="M 150 140 Q 130 110 110 80"
-          stroke="hsl(var(--phoenix-600))"
-          strokeWidth="4"
-          fill="none"
-          strokeLinecap="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: progress.g }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 1.8, delay: 0.3, ease: 'easeOut' }}
-        />
+        <defs>
+          <linearGradient id="phoenix-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#f59e0b" />   {/* amber-500 */}
+            <stop offset="100%" stopColor="#ea580c" />  {/* orange-600 */}
+          </linearGradient>
+        </defs>
       </svg>
 
-      <div className="mt-4 text-center">
-        <p className="text-2xl font-bold text-foreground">
-          {Math.round(progress.kcal)} / {progress.kcalGoal} kcal
+      <div className="absolute text-center rotate-0">
+        <div className="flex items-center justify-center gap-1 text-3xl font-bold text-foreground">
+          <Flame className="w-6 h-6 text-orange-500" /> {Math.round(pct)}%
+        </div>
+        <p className="text-sm mt-1 text-muted-foreground">
+          {Math.round(current)} / {Math.round(goal)} kcal
         </p>
-        <p className={TOKENS.textMuted}>Sua jornada hoje</p>
       </div>
     </div>
   )
@@ -625,9 +588,8 @@ const MealCard = memo(({
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * idx }}>
       <Card className={`${cardBase} p-5 transition-all hover:-translate-y-0.5`}>
-        {/* Cabeçalho clicável */}
         <button
-          className="w-full flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-phoenix-500 focus-visible:rounded-xl"
+          className="w-full flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:rounded-xl"
           onClick={onToggle}
           aria-expanded={isExpanded}
           aria-controls={`meal-${meal.id}`}
@@ -644,7 +606,7 @@ const MealCard = memo(({
               <div className="flex gap-3 font-medium text-[12px] mt-1">
                 <span className="text-green-600 dark:text-green-400">C: {Math.round(data?.total_carbs_g || 0)}g</span>
                 <span className="text-blue-600 dark:text-blue-400">P: {Math.round(data?.total_protein_g || 0)}g</span>
-                <span className="text-phoenix-600 dark:text-phoenix-400">G: {Math.round(data?.total_fat_g || 0)}g</span>
+                <span className="text-orange-600 dark:text-orange-400">G: {Math.round(data?.total_fat_g || 0)}g</span>
               </div>
             </div>
           </div>
@@ -731,7 +693,7 @@ const FoodModal = memo(({
   const [foodSearch, setFoodSearch] = useState('')
   const [foodResults, setFoodResults] = useState<any[]>([])
   const [selectedFood, setSelectedFood] = useState<SelectedFood | null>(null)
-  const [quantity, setQuantity] = useState<string>('') // unidades
+  const [quantity, setQuantity] = useState<string>('')
 
   const [isSaving, setIsSaving] = useState(false)
   const debouncedSearchTerm = useDebounce(foodSearch, 300)
@@ -740,25 +702,19 @@ const FoodModal = memo(({
     if (itemToEdit) {
       setSelectedMealType(itemToEdit.meal_type)
       setFoodSearch(itemToEdit.food_name)
-      // Nota: macros do itemToEdit podem não existir; buscamos do DB ao pesquisar
       setSelectedFood({ id: itemToEdit.food_id, name: itemToEdit.food_name, grams_per_unit: itemToEdit.grams_per_unit })
       const grams = itemToEdit.quantity_grams ?? itemToEdit.grams_total ?? 0
       const gpu = itemToEdit.grams_per_unit || 1
       const units = gpu ? grams / gpu : grams
       setQuantity(String(Number.isFinite(units) ? Math.max(0, +units) : 0))
     } else {
-      setSelectedMealType('breakfast')
-      setFoodSearch('')
-      setSelectedFood(null)
-      setQuantity('')
-      setFoodResults([])
+      setSelectedMealType('breakfast'); setFoodSearch(''); setSelectedFood(null); setQuantity(''); setFoodResults([])
     }
   }, [itemToEdit, open])
 
   useEffect(() => {
     const searchFoods = async (q: string) => {
       if (q.length < 2) { setFoodResults([]); return }
-      // traga macros para estimativas optimistas
       const { data, error } = await supabase
         .from('foods')
         .select('id,name,grams_per_unit,kcal_per_100g,carbs_g_per_100g,protein_g_per_100g,fat_g_per_100g')
@@ -767,8 +723,7 @@ const FoodModal = memo(({
       if (error) { console.error(error); toast.error('Erro ao buscar alimentos.'); return }
       setFoodResults(data || [])
     }
-    if (debouncedSearchTerm) searchFoods(debouncedSearchTerm)
-    else setFoodResults([])
+    if (debouncedSearchTerm) searchFoods(debouncedSearchTerm); else setFoodResults([])
   }, [debouncedSearchTerm])
 
   const handleSave = async () => {
@@ -883,7 +838,7 @@ const FoodModal = memo(({
           <Button
             onClick={handleSave}
             disabled={!selectedFood || !quantity || isSaving}
-            className={`flex-1 h-11 rounded-xl ${TOKENS.gradientAction} ${TOKENS.shadow.soft} hover:shadow-xl transition-all`}
+            className={`flex-1 h-11 rounded-xl ${TOKENS.gradientAction} ${TOKENS.shadow.soft} hover:shadow-xl transition-all text-white`}
           >
             {isSaving ? 'Salvando...' : (itemToEdit ? 'Salvar alterações' : 'Adicionar alimento')}
           </Button>
@@ -981,6 +936,9 @@ export default function DietPlanner() {
     )
   }
 
+  const currentKcal = Math.round(dailyIntake?.total_kcal || 0)
+  const goalKcal = Math.round(dailyIntake?.goal_kcal || 2000)
+
   return (
     <div className="relative min-h-screen overflow-hidden font-sans">
       <PhoenixBackground progress={calorieProgress} />
@@ -1006,17 +964,19 @@ export default function DietPlanner() {
             </div>
           </motion.header>
 
-          {/* Grid */}
+          {/* Grid principal */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 lg:gap-12">
-            {/* Esquerda */}
+            {/* Coluna esquerda (gráficos + IA) */}
             <div className="xl:col-span-2 space-y-8">
-              <Card className={`${cardBase} p-8 lg:p-12`}>
-                <PhoenixTree dailyIntake={dailyIntake} />
+              {/* Donut premium */}
+              <Card className={`${cardBase} p-8 lg:p-12 flex flex-col items-center`}>
+                <DonutProgress current={currentKcal} goal={goalKcal} />
                 <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-xl text-center font-medium text-foreground max-w-md mt-6 mx-auto">
                   {getMotivationalMessage(calorieProgress)}
                 </motion.p>
               </Card>
 
+              {/* (opcional) Insight/coach */}
               <Card className={`${cardBase} p-8 lg:p-12`}>
                 <PhoenixOracle
                   dailyIntake={dailyIntake || {}}
@@ -1025,18 +985,19 @@ export default function DietPlanner() {
                 />
               </Card>
 
+              {/* Análise semanal */}
               {weeklySummary.length > 0 && (
                 <Card className={`${cardBase} p-8 lg:p-12`}>
                   <h3 className="text-2xl font-semibold text-foreground mb-6 flex items-center gap-3">
-                    <Calendar className="w-6 h-6 text-phoenix-500" /> Análise Semanal
+                    <Calendar className="w-6 h-6 text-orange-500" /> Análise Semanal
                   </h3>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={weeklyChartData}>
                         <defs>
                           <linearGradient id="phoenix-gradient" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="hsl(var(--phoenix-500))" />
-                            <stop offset="100%" stopColor="hsl(var(--phoenix-600))" />
+                            <stop offset="0%" stopColor="#f59e0b" />
+                            <stop offset="100%" stopColor="#ea580c" />
                           </linearGradient>
                         </defs>
                         <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} axisLine={false} tickLine={false} />
@@ -1050,7 +1011,7 @@ export default function DietPlanner() {
               )}
             </div>
 
-            {/* Direita */}
+            {/* Coluna direita (Refeições + Ações) */}
             <div className="xl:col-span-1 space-y-8">
               <Card className={`${cardBase} p-6`}>
                 <div className="flex items-center justify-between mb-4">
@@ -1059,7 +1020,7 @@ export default function DietPlanner() {
                     onClick={() => setIsFoodModalOpen(true)}
                     size="sm"
                     variant="outline"
-                    className={`${TOKENS.radius.lg} border-phoenix-500 text-phoenix-600 hover:bg-phoenix-500 hover:text-white transition-colors`}
+                    className={`${TOKENS.radius.lg} border-orange-500 text-orange-600 hover:bg-orange-500 hover:text-white transition-colors`}
                   >
                     <Plus className="w-4 h-4 mr-1.5" /> Adicionar
                   </Button>
@@ -1076,7 +1037,7 @@ export default function DietPlanner() {
                         items={items}
                         isExpanded={expandedMeals.has(meal.id)}
                         onToggle={() => toggleMeal(meal.id)}
-                        onEditItem={setItemToEdit}
+                        onEditItem={handleEditClick}
                         onDeleteItem={handleDeleteClick}
                       />
                     )
@@ -1085,7 +1046,7 @@ export default function DietPlanner() {
               </Card>
 
               <Card className={`${cardBase} p-6 text-center`}>
-                <Sparkles className="w-10 h-10 text-phoenix-500 mx-auto mb-3" />
+                <Sparkles className="w-10 h-10 text-orange-500 mx-auto mb-3" />
                 <h3 className="text-xl font-semibold mb-1">Nutricionista Phoenix</h3>
                 <p className={`${TOKENS.textMuted} mb-5`}>Seu plano está otimizado para os melhores resultados.</p>
                 <div className="space-y-3">
@@ -1093,7 +1054,7 @@ export default function DietPlanner() {
                     onClick={actions.recalculateGoals}
                     disabled={recalculating}
                     variant="outline"
-                    className={`w-full ${TOKENS.radius.lg} border-phoenix-500 text-phoenix-600 hover:bg-phoenix-500 hover:text-white transition-colors`}
+                    className={`w-full ${TOKENS.radius.lg} border-orange-500 text-orange-600 hover:bg-orange-500 hover:text-white transition-colors`}
                   >
                     <RefreshCw className={`w-5 h-5 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
                     {recalculating ? 'Recalculando...' : 'Recalcular metas'}
