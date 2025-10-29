@@ -495,7 +495,7 @@ export default function SleepTracker() {
           {/* Save Button */}
           <Button
             className="w-full rounded-lg bg-gradient-to-r from-purple-500 to-purple-700"
-            disabled={!bedTime || !wakeTime || saving}
+            disabled={!bedTime || !wakeTime}
             onClick={saveSleepLog}
           >
             {saving ? (

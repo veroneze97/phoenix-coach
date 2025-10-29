@@ -187,13 +187,14 @@ export default function DietPlanner() {
                   {new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}
                 </p>
               </div>
-              <Button
-                onClick={() => setIsFoodModalOpen(true)}
-                className={`${TOKENS.gradientAction} text-white ${TOKENS.radius.lg} ${TOKENS.shadow.deep} transition-all hover:shadow-2xl`}
-                size="lg"
-              >
-                <Plus className="mr-2 h-5 w-5" /> Adicionar alimento
-              </Button>
+              <button
+                ßonClick={() => setIsFoodModalOpen(true)}
+                className={`${TOKENS.gradientAction} text-white ${TOKENS.radius.lg} ${TOKENS.shadow.deep} transition-all hover:shadow-2xl px-5 py-3 text-base font-medium`}>
+                <span className="inline-flex items-center">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Adicionar alimento
+                </span>
+              </button>
             </div>
           </motion.header>
 
