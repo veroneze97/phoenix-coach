@@ -41,7 +41,7 @@ const MEAL_CONFIGS: Record<MealType, MealConfig> = {
   breakfast: {
     id: 'breakfast',
     name: 'Café da manhã',
-    icon: () => null, // opcional: inserir ícone específico depois
+    icon: () => null, // ícone opcional
     emoji: '🍳',
     gradient: 'from-amber-400 to-orange-500',
   },
@@ -118,7 +118,11 @@ export default function DietPlanner() {
   const toggleMeal = (mealId: MealType) =>
     setExpandedMeals((prev) => {
       const next = new Set(prev)
-      next.has(mealId) ? next.delete(mealId) : next.add(mealId)
+      if (next.has(mealId)) {
+        next.delete(mealId)
+      } else {
+        next.add(mealId)
+      }
       return next
     })
 
@@ -126,18 +130,24 @@ export default function DietPlanner() {
     selectedMealType: MealType
     selectedFood: SelectedFood
     quantity: number
-  }) => actions.addFood(foodData)
+  }) => {
+    await actions.addFood(foodData)
+  }
 
   const handleUpdateFood = async (
     itemId: UUID,
     data: { selectedMealType: MealType; selectedFood: SelectedFood; quantity: number },
-  ) => actions.updateFood(itemId, data)
+  ) => {
+    await actions.updateFood(itemId, data)
+  }
 
   const handleEditClick = (item: MealItem) => {
     setItemToEdit(item)
     setIsFoodModalOpen(true)
   }
-  const handleDeleteClick = (itemId: UUID) => actions.deleteFood(itemId)
+  const handleDeleteClick = (itemId: UUID) => {
+    actions.deleteFood(itemId)
+  }
 
   if (loading) {
     return (
@@ -212,7 +222,7 @@ export default function DietPlanner() {
                 />
               </Card>
 
-              {/* Análise semanal — usar ternário para evitar no-unused-expressions */}
+              {/* Análise semanal — SEM && curto; usar ternário sempre */}
               {Array.isArray(weeklySummary) && weeklySummary.length > 0 ? (
                 <Card className={`${cardBase} p-8 lg:p-12`}>
                   <h3 className="mb-6 flex items-center gap-3 text-2xl font-semibold text-foreground">
@@ -241,7 +251,9 @@ export default function DietPlanner() {
                     </ResponsiveContainer>
                   </div>
                 </Card>
-              ) : null}
+              ) : (
+                null
+              )}
             </div>
 
             {/* Coluna direita */}
