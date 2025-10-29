@@ -21,8 +21,10 @@ const CardHeader = React.forwardRef<
 ))
 CardHeader.displayName = 'CardHeader'
 
+// CORREÇÃO: O ref e as props devem ser do mesmo tipo. Como renderizamos um <h3>,
+// o tipo correto para ambos é HTMLHeadingElement.
 const CardTitle = React.forwardRef<
-  HTMLParagraphElement,
+  HTMLHeadingElement,
   React.HTMLAttributes<HTMLHeadingElement>
 >(({ className, ...props }, ref) => (
   <h3
