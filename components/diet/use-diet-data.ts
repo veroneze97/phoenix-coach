@@ -230,6 +230,11 @@ export default function useDietData(userId?: UUID) {
    * ------------------------------------ */
   const addFood = useCallback(
     async (foodData: { selectedMealType: MealType; selectedFood: SelectedFood; quantity: number }) => {
+      // snapshots para rollback (definidos FORA do try para existir no catch)
+      const sItems = [...mealItems]
+      const sTotals = [...mealTotals]
+      const sDaily = dailyIntake ? { ...dailyIntake } : null
+
       try {
         if (!userId) {
           toast.error('Sessão não encontrada. Faça login.')
@@ -240,11 +245,6 @@ export default function useDietData(userId?: UUID) {
         const qtyUnits = parseFloat(String(foodData.quantity)) || 0
         const gramsTotal = gramsFromUnits(qtyUnits, foodData.selectedFood.grams_per_unit || 1)
         const delta = computeDeltaFromFood(foodData.selectedFood, gramsTotal)
-
-        // snapshots para rollback
-        const sItems = [...mealItems]
-        const sTotals = [...mealTotals]
-        const sDaily = dailyIntake ? { ...dailyIntake } : null
 
         // 1) item otimista
         const tempId = `temp-${Date.now()}` as UUID
@@ -261,7 +261,7 @@ export default function useDietData(userId?: UUID) {
         }
         setMealItems((prev) => [...prev, optimisticItem])
 
-        // 2) totais otimistas
+        // 2) totais e diário (otimista)
         setMealTotals((prev) => applyMealDelta(prev, foodData.selectedMealType, delta))
         setDailyIntake((prev) => applyDailyDelta(prev, delta))
 
@@ -294,11 +294,7 @@ export default function useDietData(userId?: UUID) {
       } catch (e: any) {
         toast.error(e?.message ? `Erro: ${e.message}` : 'Erro ao adicionar alimento.')
         // rollback com snapshots
-        setMealItems((() => mealItems)() as any)
-        setMealItems((prev) => prev) // força flush no React 18 (no-op seguro)
-        // aplicar snapshots reais
-        setMealItems(mealItems) // compatibilidade: manter estado igual antes de aplicar sItems
-        setMealItems(sItems)     // <- aplica snapshot correto
+        setMealItems(sItems)
         setMealTotals(sTotals)
         setDailyIntake(sDaily)
       }
@@ -311,16 +307,16 @@ export default function useDietData(userId?: UUID) {
       itemId: UUID,
       foodData: { selectedMealType: MealType; selectedFood: SelectedFood; quantity: number },
     ) => {
+      // snapshots para rollback (definidos FORA do try)
+      const sItems = [...mealItems]
+      const sTotals = [...mealTotals]
+      const sDaily = dailyIntake ? { ...dailyIntake } : null
+
       try {
         if (!userId) {
           toast.error('Sessão não encontrada. Faça login.')
           return
         }
-
-        // snapshots para rollback
-        const sItems = [...mealItems]
-        const sTotals = [...mealTotals]
-        const sDaily = dailyIntake ? { ...dailyIntake } : null
 
         const current = mealItems.find((i) => i.id === itemId)
         if (!current) throw new Error('Item não encontrado.')
@@ -419,6 +415,11 @@ export default function useDietData(userId?: UUID) {
 
   const deleteFood = useCallback(
     async (itemId: UUID) => {
+      // snapshots para rollback (definidos FORA do try)
+      const sItems = [...mealItems]
+      const sTotals = [...mealTotals]
+      const sDaily = dailyIntake ? { ...dailyIntake } : null
+
       try {
         if (!userId) {
           toast.error('Sessão não encontrada. Faça login.')
@@ -439,11 +440,6 @@ export default function useDietData(userId?: UUID) {
           fat_g_per_100g: 0,
         }
         const delta = computeDeltaFromFood(pseudoFood, grams)
-
-        // snapshots
-        const sItems = [...mealItems]
-        const sTotals = [...mealTotals]
-        const sDaily = dailyIntake ? { ...dailyIntake } : null
 
         // otimista
         setMealItems((prev) => prev.filter((i) => i.id !== itemId))

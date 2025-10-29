@@ -14,13 +14,12 @@
     "jsx": "preserve",
     "incremental": true,
     "baseUrl": ".",
-    "paths": {
-      "@/*": ["./*"]
-    },
+    "paths": { "@/*": ["./*"] },
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "plugins": [{ "name": "next" }],
-    "typeRoots": ["./types", "./node_modules/@types"]
+    "typeRoots": ["./types", "./node_modules/@types"],
+    "types": ["node"]          // ⬅️ ADICIONE ESTA LINHA
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "components/diet/PhoenixOracle.js"],
   "exclude": ["node_modules"]

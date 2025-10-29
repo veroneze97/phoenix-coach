@@ -32,6 +32,9 @@ const FALL_ASLEEP_DEFAULT = 15
 export default function SleepTracker() {
   const { user } = useAuth()
 
+  // 🔒 Protege toda a árvore: se não houver usuário, nada é renderizado (e evita acessar user.id)
+  if (!user) return null
+
   // Sleep Calculator state
   const [wakeUpTime, setWakeUpTime] = useState('07:00')
   const [fallAsleepTime, setFallAsleepTime] = useState(FALL_ASLEEP_DEFAULT)
@@ -48,10 +51,9 @@ export default function SleepTracker() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (user) {
-      loadWeeklyData()
-    }
-  }, [user])
+    loadWeeklyData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]) // com o guard acima, user sempre existe aqui
 
   const loadWeeklyData = async () => {
     setLoading(true)
@@ -81,6 +83,12 @@ export default function SleepTracker() {
   const saveSleepLog = async () => {
     if (!bedTime || !wakeTime) {
       toast.error('Preencha horário de dormir e acordar')
+      return
+    }
+
+    // proteção adicional (defensivo)
+    if (!user?.id) {
+      toast.error('Sessão não encontrada. Faça login.')
       return
     }
 
@@ -495,7 +503,7 @@ export default function SleepTracker() {
           {/* Save Button */}
           <Button
             className="w-full rounded-lg bg-gradient-to-r from-purple-500 to-purple-700"
-            disabled={!bedTime || !wakeTime}
+            disabled={!bedTime || !wakeTime || saving}
             onClick={saveSleepLog}
           >
             {saving ? (
@@ -513,7 +521,7 @@ export default function SleepTracker() {
         </CardContent>
       </Card>
 
-      {/* Weekly Chart Placeholder */}
+      {/* Weekly Chart */}
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -538,7 +546,7 @@ export default function SleepTracker() {
                   domain={[0, 10]}
                 />
                 <Tooltip
-                  content={({ active, payload }) => {
+                  content={({ active, payload }: any) => {
                     if (active && payload && payload.length) {
                       return (
                         <div className="glass-card border border-purple-500/20 p-3">
