@@ -31,7 +31,7 @@
     --phoenix-200: 41 98% 84%;
     --phoenix-300: 39 96% 71%;
     --phoenix-400: 38 95% 58%;
-    --phoenix-500: 38 100% 50%; /* Sua cor principal */
+    --phoenix-500: 38 100% 50%; /* Cor principal */
     --phoenix-600: 33 93% 44%;
     --phoenix-700: 28 85% 39%;
     --phoenix-800: 24 70% 33%;
@@ -68,20 +68,16 @@
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings:
-      'rlig' 1,
-      'calt' 1;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 
-  /* Apple-inspired smooth scrolling */
   html {
     scroll-behavior: smooth;
   }
 
-  /* Custom scrollbar (webkit) */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -101,30 +97,25 @@
 }
 
 @layer components {
-  /* Glass card effect */
   .glass-card {
     @apply border border-border bg-card/80 shadow-sm backdrop-blur-md;
     border-radius: var(--radius);
   }
 
-  /* Phoenix gradient - ATUALIZADO */
   .phoenix-gradient {
     @apply bg-gradient-to-r from-phoenix-500 to-phoenix-600;
   }
 
-  /* Text gradient - ATUALIZADO */
   .text-gradient {
     @apply bg-gradient-to-r from-phoenix-500 to-phoenix-600 bg-clip-text text-transparent;
   }
 
-  /* Smooth transitions */
   .smooth-transition {
     @apply transition-all duration-200 ease-in-out;
   }
 }
 
 @layer utilities {
-  /* Performance optimization utilities */
   .will-change-transform {
     will-change: transform;
   }
@@ -138,7 +129,6 @@
     -webkit-transform: translateZ(0);
   }
 
-  /* Hide scrollbar but keep functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -148,7 +138,6 @@
     display: none;
   }
 
-  /* Reduce motion for accessibility */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -159,7 +148,6 @@
     }
   }
 
-  /* Safe area insets for iOS */
   .safe-top {
     padding-top: env(safe-area-inset-top);
   }
