@@ -32,7 +32,7 @@ const FALL_ASLEEP_DEFAULT = 15
 
 export default function SleepTracker() {
   const { user } = useAuth()
-  
+
   // Sleep Calculator state
   const [wakeUpTime, setWakeUpTime] = useState('07:00')
   const [fallAsleepTime, setFallAsleepTime] = useState(FALL_ASLEEP_DEFAULT)
@@ -59,7 +59,7 @@ export default function SleepTracker() {
     try {
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      
+
       const { data, error } = await supabase
         .from('sleep_logs')
         .select('*')
@@ -88,25 +88,26 @@ export default function SleepTracker() {
     try {
       const today = new Date().toISOString().split('T')[0]
 
-      const { error } = await supabase
-        .from('sleep_logs')
-        .upsert({
+      const { error } = await supabase.from('sleep_logs').upsert(
+        {
           user_id: user.id,
           date: today,
           bed_time: bedTime,
           wake_time: wakeTime,
           latency_min: latency,
           quality: sleepQuality,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,date'
-        })
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id,date',
+        },
+      )
 
       if (error) throw error
 
       toast.success('Sono registrado com sucesso! 🌙')
       await loadWeeklyData()
-      
+
       // Reset form
       setBedTime('')
       setWakeTime('')
@@ -137,9 +138,9 @@ export default function SleepTracker() {
     ]
 
     cycles.forEach(({ count, label, description, emoji }) => {
-      const totalMinutes = (count * SLEEP_CYCLE_MINUTES) + fallAsleepTime
+      const totalMinutes = count * SLEEP_CYCLE_MINUTES + fallAsleepTime
       const bedtimeDate = new Date(wakeUpDate.getTime() - totalMinutes * 60000)
-      
+
       const bedtimeHours = bedtimeDate.getHours().toString().padStart(2, '0')
       const bedtimeMinutes = bedtimeDate.getMinutes().toString().padStart(2, '0')
       const bedtime = `${bedtimeHours}:${bedtimeMinutes}`
@@ -172,39 +173,39 @@ export default function SleepTracker() {
         icon: Activity,
         color: 'text-red-500',
         hoursBefore: 4,
-        description: 'Exercícios intensos elevam cortisol e temperatura'
+        description: 'Exercícios intensos elevam cortisol e temperatura',
       },
       {
         name: 'Cafeína',
         icon: Coffee,
         color: 'text-orange-500',
         hoursBefore: 6,
-        description: 'Meia-vida da cafeína é 5-6 horas'
+        description: 'Meia-vida da cafeína é 5-6 horas',
       },
       {
         name: 'Refeição Pesada',
         icon: Sparkles,
         color: 'text-yellow-500',
         hoursBefore: 3,
-        description: 'Digestão pode atrapalhar o sono'
+        description: 'Digestão pode atrapalhar o sono',
       },
       {
         name: 'Telas (Luz Azul)',
         icon: Sun,
         color: 'text-blue-500',
         hoursBefore: 1,
-        description: 'Suprime produção de melatonina'
+        description: 'Suprime produção de melatonina',
       },
     ]
 
-    return cutoffs.map(cutoff => {
+    return cutoffs.map((cutoff) => {
       const cutoffTime = new Date(bedtime.getTime() - cutoff.hoursBefore * 60 * 60000)
       const cutoffHours = cutoffTime.getHours().toString().padStart(2, '0')
       const cutoffMinutes = cutoffTime.getMinutes().toString().padStart(2, '0')
-      
+
       return {
         ...cutoff,
-        time: `${cutoffHours}:${cutoffMinutes}`
+        time: `${cutoffHours}:${cutoffMinutes}`,
       }
     })
   }
@@ -227,11 +228,11 @@ export default function SleepTracker() {
     const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
     const date = new Date(log.date)
     const dayName = dayNames[date.getDay()]
-    
+
     return {
       day: dayName,
       hours: log.duration_min ? log.duration_min / 60 : 0,
-      quality: log.quality || 0
+      quality: log.quality || 0,
     }
   })
 
@@ -241,13 +242,13 @@ export default function SleepTracker() {
       return {
         avgHours: 0,
         avgQuality: 0,
-        consistency: 0
+        consistency: 0,
       }
     }
 
     const totalMinutes = weeklyData.reduce((sum, log) => sum + (log.duration_min || 0), 0)
     const totalQuality = weeklyData.reduce((sum, log) => sum + (log.quality || 0), 0)
-    
+
     const avgHours = totalMinutes / weeklyData.length / 60
     const avgQuality = totalQuality / weeklyData.length
     const consistency = (weeklyData.length / 7) * 100
@@ -255,7 +256,7 @@ export default function SleepTracker() {
     return {
       avgHours: avgHours.toFixed(1),
       avgQuality: Math.round(avgQuality),
-      consistency: Math.round(consistency)
+      consistency: Math.round(consistency),
     }
   }
 
@@ -264,7 +265,7 @@ export default function SleepTracker() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
       </div>
     )
   }
@@ -275,7 +276,7 @@ export default function SleepTracker() {
       <Card className="glass-card border-purple-500/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Moon className="w-6 h-6 text-purple-500" />
+            <Moon className="h-6 w-6 text-purple-500" />
             Calculadora de Sono
           </CardTitle>
           <CardDescription>
@@ -284,11 +285,11 @@ export default function SleepTracker() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Inputs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {/* Wake Up Time */}
             <div className="space-y-2">
               <Label htmlFor="wake-time" className="flex items-center gap-2">
-                <Sun className="w-4 h-4 text-orange-500" />
+                <Sun className="h-4 w-4 text-orange-500" />
                 Horário de Acordar
               </Label>
               <Input
@@ -296,15 +297,15 @@ export default function SleepTracker() {
                 type="time"
                 value={wakeUpTime}
                 onChange={(e) => setWakeUpTime(e.target.value)}
-                className="text-lg font-mono"
+                className="font-mono text-lg"
               />
             </div>
 
             {/* Fall Asleep Latency */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2 justify-between">
+              <Label className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-500" />
+                  <Clock className="h-4 w-4 text-blue-500" />
                   Tempo para Adormecer
                 </span>
                 <span className="text-sm font-bold">{fallAsleepTime} min</span>
@@ -325,37 +326,33 @@ export default function SleepTracker() {
 
           {/* Recommendations */}
           <div className="space-y-3">
-            <h3 className="font-semibold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-phoenix-amber" />
+            <h3 className="flex items-center gap-2 font-semibold">
+              <Sparkles className="h-5 w-5 text-phoenix-amber" />
               Horários Recomendados
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               {recommendations.map((rec, index) => (
                 <div
                   key={rec.cycles}
-                  className={`
-                    p-4 rounded-lg border-2 backdrop-blur-md transition-all hover:scale-105
-                    ${index === 0 
-                      ? 'bg-phoenix-amber/10 border-phoenix-amber/30 shadow-lg shadow-phoenix-amber/10' 
+                  className={`rounded-lg border-2 p-4 backdrop-blur-md transition-all hover:scale-105 ${
+                    index === 0
+                      ? 'border-phoenix-amber/30 bg-phoenix-amber/10 shadow-lg shadow-phoenix-amber/10'
                       : index === 1
-                      ? 'bg-green-500/10 border-green-500/30'
-                      : 'bg-blue-500/10 border-blue-500/30'
-                    }
-                  `}
+                        ? 'border-green-500/30 bg-green-500/10'
+                        : 'border-blue-500/30 bg-blue-500/10'
+                  } `}
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="mb-2 flex items-center gap-2">
                     <span className="text-2xl">{rec.emoji}</span>
                     <div className="flex-1">
-                      <h4 className="font-bold text-lg">{rec.label}</h4>
+                      <h4 className="text-lg font-bold">{rec.label}</h4>
                       <p className="text-xs text-muted-foreground">{rec.description}</p>
                     </div>
                   </div>
-                  <div className="mt-3 p-3 rounded-lg bg-black/10 dark:bg-white/5">
+                  <div className="mt-3 rounded-lg bg-black/10 p-3 dark:bg-white/5">
                     <div className="text-center">
-                      <div className="text-3xl font-bold font-mono">
-                        {rec.bedtime}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
+                      <div className="font-mono text-3xl font-bold">{rec.bedtime}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
                         {rec.cycles} ciclos de sono
                       </div>
                     </div>
@@ -366,13 +363,13 @@ export default function SleepTracker() {
           </div>
 
           {/* Info */}
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+          <div className="flex items-start gap-3 rounded-lg border border-blue-500/20 bg-blue-500/10 p-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" />
             <div className="text-sm">
-              <p className="font-medium mb-1">Como funciona?</p>
+              <p className="mb-1 font-medium">Como funciona?</p>
               <p className="text-muted-foreground">
-                Um ciclo de sono completo dura 90 minutos. Acordar entre ciclos (não no meio) ajuda você a se sentir mais descansado. 
-                Recomendamos 5-6 ciclos (7h30-9h) para adultos.
+                Um ciclo de sono completo dura 90 minutos. Acordar entre ciclos (não no meio) ajuda
+                você a se sentir mais descansado. Recomendamos 5-6 ciclos (7h30-9h) para adultos.
               </p>
             </div>
           </div>
@@ -383,19 +380,17 @@ export default function SleepTracker() {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BedDouble className="w-6 h-6 text-purple-500" />
+            <BedDouble className="h-6 w-6 text-purple-500" />
             Registrar Sono Manualmente
           </CardTitle>
-          <CardDescription>
-            Registre suas horas de sono e qualidade
-          </CardDescription>
+          <CardDescription>Registre suas horas de sono e qualidade</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Time Inputs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="bed-time" className="flex items-center gap-2">
-                <Moon className="w-4 h-4 text-purple-500" />
+                <Moon className="h-4 w-4 text-purple-500" />
                 Hora que Dormiu
               </Label>
               <Input
@@ -403,13 +398,13 @@ export default function SleepTracker() {
                 type="time"
                 value={bedTime}
                 onChange={(e) => setBedTime(e.target.value)}
-                className="text-lg font-mono"
+                className="font-mono text-lg"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="wake-time-log" className="flex items-center gap-2">
-                <Sun className="w-4 h-4 text-orange-500" />
+                <Sun className="h-4 w-4 text-orange-500" />
                 Hora que Acordou
               </Label>
               <Input
@@ -417,32 +412,32 @@ export default function SleepTracker() {
                 type="time"
                 value={wakeTime}
                 onChange={(e) => setWakeTime(e.target.value)}
-                className="text-lg font-mono"
+                className="font-mono text-lg"
               />
             </div>
           </div>
 
           {/* Sleep Duration Display */}
           {bedTime && wakeTime && (
-            <div className="p-4 rounded-lg bg-secondary/50 text-center">
-              <div className="text-sm text-muted-foreground mb-1">Duração do Sono</div>
+            <div className="rounded-lg bg-secondary/50 p-4 text-center">
+              <div className="mb-1 text-sm text-muted-foreground">Duração do Sono</div>
               <div className="text-3xl font-bold text-purple-500">
                 {(() => {
                   const [bedH, bedM] = bedTime.split(':').map(Number)
                   const [wakeH, wakeM] = wakeTime.split(':').map(Number)
-                  
+
                   let bedMinutes = bedH * 60 + bedM
                   let wakeMinutes = wakeH * 60 + wakeM
-                  
+
                   // Handle overnight sleep
                   if (wakeMinutes <= bedMinutes) {
                     wakeMinutes += 24 * 60
                   }
-                  
+
                   const diff = wakeMinutes - bedMinutes
                   const hours = Math.floor(diff / 60)
                   const minutes = diff % 60
-                  
+
                   return `${hours}h ${minutes}min`
                 })()}
               </div>
@@ -452,17 +447,17 @@ export default function SleepTracker() {
           {/* Quality Slider */}
           <div className="space-y-3">
             <Label className="flex items-center gap-2">
-              <Star className={`w-4 h-4 ${qualityColors[sleepQuality - 1]}`} />
+              <Star className={`h-4 w-4 ${qualityColors[sleepQuality - 1]}`} />
               Qualidade do Sono
             </Label>
-            
+
             {/* Quality value display */}
-            <div className="text-center p-3 rounded-lg bg-secondary/50">
-              <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="rounded-lg bg-secondary/50 p-3 text-center">
+              <div className="mb-2 flex items-center justify-center gap-2">
                 {[1, 2, 3, 4, 5].map((value) => (
                   <Star
                     key={value}
-                    className={`w-6 h-6 ${
+                    className={`h-6 w-6 ${
                       value <= sleepQuality
                         ? qualityColors[sleepQuality - 1]
                         : 'text-muted-foreground/30'
@@ -485,9 +480,9 @@ export default function SleepTracker() {
               step={1}
               className="py-4"
             />
-            
+
             {/* Quality descriptions */}
-            <div className="grid grid-cols-5 gap-1 text-xs text-center text-muted-foreground">
+            <div className="grid grid-cols-5 gap-1 text-center text-xs text-muted-foreground">
               <div>Péssimo</div>
               <div>Ruim</div>
               <div>Regular</div>
@@ -497,11 +492,11 @@ export default function SleepTracker() {
           </div>
 
           {/* Save Button */}
-          <Button 
+          <Button
             className="w-full rounded-lg bg-gradient-to-r from-purple-500 to-purple-700"
             disabled={!bedTime || !wakeTime}
           >
-            <Moon className="w-4 h-4 mr-2" />
+            <Moon className="mr-2 h-4 w-4" />
             Salvar Registro
           </Button>
         </CardContent>
@@ -511,24 +506,22 @@ export default function SleepTracker() {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-phoenix-amber" />
+            <TrendingUp className="h-6 w-6 text-phoenix-amber" />
             Seu Sono na Última Semana
           </CardTitle>
-          <CardDescription>
-            Visualize seu padrão de sono e qualidade
-          </CardDescription>
+          <CardDescription>Visualize seu padrão de sono e qualidade</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Chart */}
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <XAxis 
-                  dataKey="day" 
+                <XAxis
+                  dataKey="day"
                   stroke="currentColor"
                   className="text-xs text-muted-foreground"
                 />
-                <YAxis 
+                <YAxis
                   stroke="currentColor"
                   className="text-xs text-muted-foreground"
                   domain={[0, 10]}
@@ -537,16 +530,19 @@ export default function SleepTracker() {
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       return (
-                        <div className="glass-card p-3 border border-purple-500/20">
+                        <div className="glass-card border border-purple-500/20 p-3">
                           <p className="text-sm font-semibold">{payload[0].payload.day}</p>
                           <p className="text-sm">
-                            <span className="text-purple-500 font-bold">{payload[0].payload.hours.toFixed(1)}h</span> de sono
+                            <span className="font-bold text-purple-500">
+                              {payload[0].payload.hours.toFixed(1)}h
+                            </span>{' '}
+                            de sono
                           </p>
-                          <div className="flex items-center gap-1 mt-1">
+                          <div className="mt-1 flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
                                 key={star}
-                                className={`w-3 h-3 ${
+                                className={`h-3 w-3 ${
                                   star <= payload[0].payload.quality
                                     ? 'text-phoenix-amber'
                                     : 'text-muted-foreground/30'
@@ -561,10 +557,10 @@ export default function SleepTracker() {
                     return null
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="hours" 
-                  stroke="#A855F7" 
+                <Line
+                  type="monotone"
+                  dataKey="hours"
+                  stroke="#A855F7"
                   strokeWidth={3}
                   dot={{ fill: '#A855F7', r: 5 }}
                 />
@@ -574,18 +570,20 @@ export default function SleepTracker() {
 
           {/* Weekly Summary */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 rounded-lg bg-secondary/50">
+            <div className="rounded-lg bg-secondary/50 p-4 text-center">
               <div className="text-2xl font-bold text-purple-500">{weeklyStats.avgHours}h</div>
-              <div className="text-xs text-muted-foreground mt-1">Média por Noite</div>
+              <div className="mt-1 text-xs text-muted-foreground">Média por Noite</div>
             </div>
-            
-            <div className="text-center p-4 rounded-lg bg-secondary/50">
-              <div className="flex items-center justify-center gap-1 mb-1">
+
+            <div className="rounded-lg bg-secondary/50 p-4 text-center">
+              <div className="mb-1 flex items-center justify-center gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    className={`w-4 h-4 ${
-                      star <= weeklyStats.avgQuality ? 'text-phoenix-amber' : 'text-muted-foreground/30'
+                    className={`h-4 w-4 ${
+                      star <= weeklyStats.avgQuality
+                        ? 'text-phoenix-amber'
+                        : 'text-muted-foreground/30'
                     }`}
                     fill={star <= weeklyStats.avgQuality ? 'currentColor' : 'none'}
                   />
@@ -593,23 +591,24 @@ export default function SleepTracker() {
               </div>
               <div className="text-xs text-muted-foreground">Qualidade Média</div>
             </div>
-            
-            <div className="text-center p-4 rounded-lg bg-secondary/50">
+
+            <div className="rounded-lg bg-secondary/50 p-4 text-center">
               <div className="text-2xl font-bold text-green-500">{weeklyStats.consistency}%</div>
-              <div className="text-xs text-muted-foreground mt-1">Consistência</div>
+              <div className="mt-1 text-xs text-muted-foreground">Consistência</div>
             </div>
           </div>
 
           {/* Data Status */}
           {weeklyData.length === 0 ? (
-            <div className="p-4 rounded-lg bg-muted/50 border border-dashed text-center">
-              <Calendar className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+            <div className="rounded-lg border border-dashed bg-muted/50 p-4 text-center">
+              <Calendar className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
               <p className="text-sm text-muted-foreground">
-                <strong>Nenhum registro ainda.</strong> Comece a registrar seu sono para ver estatísticas.
+                <strong>Nenhum registro ainda.</strong> Comece a registrar seu sono para ver
+                estatísticas.
               </p>
             </div>
           ) : (
-            <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
+            <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-3 text-center">
               <p className="text-sm text-green-600 dark:text-green-400">
                 ✅ Dados reais dos últimos 7 dias
               </p>
@@ -622,40 +621,40 @@ export default function SleepTracker() {
       <Card className="glass-card border-blue-500/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Zap className="w-5 h-5 text-blue-500" />
+            <Zap className="h-5 w-5 text-blue-500" />
             Dicas para Melhor Sono
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
-              <Moon className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="flex items-start gap-3 rounded-lg bg-secondary/30 p-3">
+              <Moon className="mt-0.5 h-5 w-5 flex-shrink-0 text-purple-500" />
               <div className="text-sm">
-                <p className="font-medium mb-1">Ambiente Escuro</p>
+                <p className="mb-1 font-medium">Ambiente Escuro</p>
                 <p className="text-muted-foreground">Use cortinas blackout ou máscara de dormir</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
-              <Clock className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 rounded-lg bg-secondary/30 p-3">
+              <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" />
               <div className="text-sm">
-                <p className="font-medium mb-1">Rotina Consistente</p>
+                <p className="mb-1 font-medium">Rotina Consistente</p>
                 <p className="text-muted-foreground">Durma e acorde no mesmo horário</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
-              <Zap className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 rounded-lg bg-secondary/30 p-3">
+              <Zap className="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-500" />
               <div className="text-sm">
-                <p className="font-medium mb-1">Evite Cafeína</p>
+                <p className="mb-1 font-medium">Evite Cafeína</p>
                 <p className="text-muted-foreground">Não tome café 6h antes de dormir</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
-              <Sun className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 rounded-lg bg-secondary/30 p-3">
+              <Sun className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange-500" />
               <div className="text-sm">
-                <p className="font-medium mb-1">Luz Natural</p>
+                <p className="mb-1 font-medium">Luz Natural</p>
                 <p className="text-muted-foreground">Exponha-se ao sol pela manhã</p>
               </div>
             </div>

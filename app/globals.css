@@ -65,10 +65,12 @@
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -90,7 +92,7 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full;
+    @apply rounded-full bg-muted-foreground/20;
   }
 
   ::-webkit-scrollbar-thumb:hover {
@@ -101,7 +103,7 @@
 @layer components {
   /* Glass card effect */
   .glass-card {
-    @apply bg-card/80 backdrop-blur-md border border-border shadow-sm;
+    @apply border border-border bg-card/80 shadow-sm backdrop-blur-md;
     border-radius: var(--radius);
   }
 

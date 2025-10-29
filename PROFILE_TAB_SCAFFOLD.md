@@ -1,11 +1,13 @@
 # Profile Tab - UI Scaffold Documentation
 
 ## Overview
+
 The Profile tab provides a comprehensive user settings interface with personal information management, daily target configuration, and third-party app integrations. Built with Apple + Phoenix aesthetic (glass effects, gold accents, 20px border radius).
 
 ## Component Structure
 
 ### ProfileTab.js
+
 Static UI scaffold with the following sections:
 
 1. **Profile Header Card**
@@ -22,6 +24,7 @@ Static UI scaffold with the following sections:
 ### 1. Profile Header Card
 
 **Features:**
+
 - Large circular avatar with user initial
 - Gradient background (phoenix-amber → phoenix-gold)
 - Edit button overlay (bottom-right corner)
@@ -35,12 +38,14 @@ Static UI scaffold with the following sections:
   - "Sair" (LogOut icon, red accent)
 
 **Animations:**
+
 - Card fade-in from top (y: -20 → 0)
 - Avatar hover scale (1 → 1.05)
 - Edit button hover scale (1 → 1.1)
 - Background gradient overlay
 
 **Static Data:**
+
 ```javascript
 {
   name: 'Atleta Phoenix',
@@ -57,6 +62,7 @@ Static UI scaffold with the following sections:
 ### 2. Personal Information Card
 
 **Features:**
+
 - Form fields (currently read-only):
   - Nome Completo
   - Idade (number input)
@@ -68,6 +74,7 @@ Static UI scaffold with the following sections:
   - Multi-select capability (static)
 
 **Goal Options:**
+
 - ⚖️ Perda de Peso (weight_loss)
 - 💪 Ganho de Massa (muscle_gain)
 - 🏃 Resistência (endurance)
@@ -75,11 +82,13 @@ Static UI scaffold with the following sections:
 - ❤️ Saúde Geral (health)
 
 **Animations:**
+
 - Card fade-in with delay (0.1s)
 - Goal badges hover scale (1.05)
 - Goal badges tap scale (0.95)
 
 **Styling:**
+
 - Glass card with standard border
 - Input fields with secondary background
 - Selected goals have gold gradient background
@@ -90,20 +99,21 @@ Static UI scaffold with the following sections:
 ### 3. Daily Targets Card
 
 **Features:**
+
 - Three target columns (responsive grid):
-  
+
   **Calories Target:**
   - Icon: Utensils (orange)
   - Large centered input (2xl text)
   - Unit label: "kcal"
   - Reference scale: 1500 - 2500 - 3500
-  
+
   **Steps Target:**
   - Icon: Footprints (blue)
   - Large centered input
   - Unit label: "passos"
   - Reference scale: 5k - 10k - 15k
-  
+
   **Sleep Target:**
   - Icon: Moon (purple)
   - Large centered input
@@ -115,6 +125,7 @@ Static UI scaffold with the following sections:
   - Save icon
 
 **Static Targets:**
+
 ```javascript
 {
   calories: 2500,
@@ -124,9 +135,11 @@ Static UI scaffold with the following sections:
 ```
 
 **Animations:**
+
 - Card fade-in with delay (0.2s)
 
 **Styling:**
+
 - Icon containers with colored backgrounds
 - Large input fields (h-16, 2xl font)
 - Reference scales in muted text
@@ -140,6 +153,7 @@ Static UI scaffold with the following sections:
 Three integration cards (3-column grid):
 
 **Strava:**
+
 - Icon: 🏃
 - Color: Orange
 - Status: Desconectado
@@ -147,6 +161,7 @@ Three integration cards (3-column grid):
 - Button: "Conectar" (gold gradient)
 
 **Google Fit:**
+
 - Icon: 💚
 - Color: Green
 - Status: Desconectado
@@ -154,6 +169,7 @@ Three integration cards (3-column grid):
 - Button: "Conectar" (gold gradient)
 
 **iOS Shortcuts:**
+
 - Icon: 📱
 - Color: Blue
 - Status: Conectado ✓
@@ -161,15 +177,18 @@ Three integration cards (3-column grid):
 - Button: "Gerenciar" (outline style)
 
 **Badge Styling:**
+
 - Connected: Green badge with CheckCircle icon
 - Disconnected: Outline badge (dashed) with Circle icon
 
 **Animations:**
+
 - Card fade-in with delay (0.3s)
 - Integration cards staggered entrance (0.1s intervals)
 - Cards hover shadow effect
 
 **Styling:**
+
 - Glass cards with colored borders (2px)
 - Large emoji icons in colored containers
 - Status badges in top-right
@@ -181,6 +200,7 @@ Three integration cards (3-column grid):
 ### 5. Additional Settings Card
 
 **Features:**
+
 - List of setting options (ghost buttons):
   - Preferências de Notificação
   - Privacidade e Dados
@@ -189,9 +209,11 @@ Three integration cards (3-column grid):
   - Excluir Conta (red text)
 
 **Animations:**
+
 - Card fade-in with delay (0.6s)
 
 **Styling:**
+
 - Ghost button style (left-aligned)
 - Red accent for destructive action
 - Hover effects on all buttons
@@ -201,6 +223,7 @@ Three integration cards (3-column grid):
 ### 6. App Info Footer
 
 **Features:**
+
 - Version number: "Phoenix Coach v1.0.0"
 - Footer links (separated by bullets):
   - Termos de Uso
@@ -208,9 +231,11 @@ Three integration cards (3-column grid):
   - Suporte
 
 **Animations:**
+
 - Card fade-in with delay (0.7s)
 
 **Styling:**
+
 - Dashed border card
 - Center-aligned text
 - Muted foreground colors
@@ -223,11 +248,13 @@ Three integration cards (3-column grid):
 ### Apple + Phoenix Aesthetic
 
 **Glass Effect:**
+
 - `glass-card` class on all major cards
 - Backdrop blur and transparency
 - Subtle gradient overlays
 
 **Gold Accents:**
+
 - Primary: `#FFB300` (phoenix-amber)
 - Secondary: `#D97706` (phoenix-gold)
 - Used for:
@@ -236,11 +263,13 @@ Three integration cards (3-column grid):
   - Interactive element accents
 
 **Border Radius:**
+
 - 20px on cards (via glass-card class)
 - Rounded-full on avatar and buttons
 - Rounded-lg on inputs and badges
 
 **Shadows:**
+
 - Soft shadows on elevated elements
 - Hover shadow enhancement on cards
 - Gold glow on interactive elements
@@ -248,12 +277,14 @@ Three integration cards (3-column grid):
 ### Color Palette
 
 **Integration Colors:**
+
 - Orange: Strava, Calories
 - Green: Google Fit
 - Blue: iOS Shortcuts, Steps
 - Purple: Sleep
 
 **Semantic Colors:**
+
 - Success: Green (connected status)
 - Danger: Red (destructive actions)
 - Muted: Gray tones for secondary text
@@ -265,6 +296,7 @@ Three integration cards (3-column grid):
 ### Entrance Animations
 
 **Stagger Pattern:**
+
 ```javascript
 delay: 0.0s - Profile Header
 delay: 0.1s - Personal Info
@@ -275,6 +307,7 @@ delay: 0.7s - App Info
 ```
 
 **Standard Entrance:**
+
 ```javascript
 initial={{ opacity: 0, y: 20 }}
 animate={{ opacity: 1, y: 0 }}
@@ -282,6 +315,7 @@ transition={{ duration: 0.5 }}
 ```
 
 **Header Variation:**
+
 ```javascript
 initial={{ opacity: 0, y: -20 }}
 animate={{ opacity: 1, y: 0 }}
@@ -290,12 +324,14 @@ animate={{ opacity: 1, y: 0 }}
 ### Interactive Animations
 
 **Avatar Edit Button:**
+
 ```javascript
 whileHover={{ scale: 1.1 }}
 whileTap={{ scale: 0.95 }}
 ```
 
 **Goal Badges:**
+
 ```javascript
 whileHover={{ scale: 1.05 }}
 whileTap={{ scale: 0.95 }}
@@ -306,6 +342,7 @@ whileTap={{ scale: 0.95 }}
 ## Static Data Structure
 
 ### User Object
+
 ```javascript
 {
   name: string,
@@ -318,6 +355,7 @@ whileTap={{ scale: 0.95 }}
 ```
 
 ### Targets Object
+
 ```javascript
 {
   calories: number,
@@ -327,6 +365,7 @@ whileTap={{ scale: 0.95 }}
 ```
 
 ### Integration Object
+
 ```javascript
 {
   id: string,
@@ -372,6 +411,7 @@ When connecting to Supabase:
 ## Responsive Design
 
 **Breakpoints:**
+
 - Mobile: Single column layout
 - Tablet/Desktop: Grid layouts
   - Personal Info: 2 columns
@@ -379,6 +419,7 @@ When connecting to Supabase:
   - Integrations: 3 columns
 
 **Mobile Optimizations:**
+
 - Stack avatar and info vertically
 - Hide action buttons or move to menu
 - Simplify quick stats layout

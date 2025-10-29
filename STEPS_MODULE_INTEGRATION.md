@@ -1,6 +1,7 @@
 # Steps Module - Supabase Integration Guide
 
 ## Overview
+
 The Steps Module allows users to track their daily step count with a goal of 8,000 steps per day. It includes manual entry, weekly progress visualization, and preparation for iOS Shortcut integration.
 
 ## Database Schema
@@ -8,6 +9,7 @@ The Steps Module allows users to track their daily step count with a goal of 8,0
 ### Table: `steps_logs`
 
 **Columns:**
+
 - `id` (UUID): Primary key
 - `user_id` (UUID): Foreign key to auth.users
 - `date` (DATE): The date of the step entry (defaults to today)
@@ -18,11 +20,13 @@ The Steps Module allows users to track their daily step count with a goal of 8,0
 - `updated_at` (TIMESTAMPTZ): Last update timestamp
 
 **Constraints:**
+
 - UNIQUE constraint on (user_id, date) - ensures one entry per day per user
 - CHECK constraint on steps (>= 0)
 - CHECK constraint on goal (> 0)
 
 **RLS Policies:**
+
 - Users can only view, create, update, and delete their own steps logs
 - Policy: `auth.uid() = user_id`
 
@@ -47,6 +51,7 @@ The Steps Module allows users to track their daily step count with a goal of 8,0
 The `StepsTracker.js` component includes:
 
 **Features:**
+
 - ✅ Fetch today's steps on component mount
 - ✅ Save/update steps (upsert operation for same day)
 - ✅ Real-time progress ring visualization
@@ -57,6 +62,7 @@ The `StepsTracker.js` component includes:
 - ✅ iOS Shortcut integration placeholder
 
 **Supabase Operations:**
+
 1. **Load Today's Steps:** `SELECT` query filtered by user_id and today's date
 2. **Save Steps:** `UPSERT` operation (updates if exists, inserts if new)
 3. **Load Weekly Data:** `SELECT` last 7 days for chart visualization
@@ -68,6 +74,7 @@ For iOS Shortcut integration, you'll need:
 ### POST `/api/steps/sync`
 
 **Request Body:**
+
 ```json
 {
   "user_id": "uuid",
@@ -77,6 +84,7 @@ For iOS Shortcut integration, you'll need:
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,

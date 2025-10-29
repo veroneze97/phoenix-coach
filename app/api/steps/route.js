@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server'
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseServiceKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('Missing Supabase environment variables')
@@ -13,9 +14,9 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 /**
  * POST /api/steps
- * 
+ *
  * Receives step data from iOS Shortcuts or other external sources
- * 
+ *
  * Request Body:
  * {
  *   "user_id": "uuid-string",  // Optional if using auth token
@@ -24,7 +25,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
  *   "goal": 8000,               // Optional, defaults to 8000
  *   "source": "ios_shortcut"   // Optional, defaults to 'api'
  * }
- * 
+ *
  * Response:
  * {
  *   "success": true,
@@ -46,41 +47,44 @@ export async function POST(request) {
     // Validate required fields
     if (!steps || typeof steps !== 'number' || steps < 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Invalid steps value. Must be a positive number.' 
+        {
+          success: false,
+          error: 'Invalid steps value. Must be a positive number.',
         },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
     // Get user from Authorization header or use provided user_id
     let userId = user_id
-    
+
     if (!userId) {
       // Try to get user from auth token
       const authHeader = request.headers.get('authorization')
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7)
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-        
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser(token)
+
         if (authError || !user) {
           return NextResponse.json(
-            { 
-              success: false, 
-              error: 'Authentication required. Provide user_id or valid auth token.' 
+            {
+              success: false,
+              error: 'Authentication required. Provide user_id or valid auth token.',
             },
-            { status: 401 }
+            { status: 401 },
           )
         }
         userId = user.id
       } else {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: 'user_id is required when not authenticated' 
+          {
+            success: false,
+            error: 'user_id is required when not authenticated',
           },
-          { status: 400 }
+          { status: 400 },
         )
       }
     }
@@ -92,38 +96,41 @@ export async function POST(request) {
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/
     if (!dateRegex.test(targetDate)) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Invalid date format. Use YYYY-MM-DD.' 
+        {
+          success: false,
+          error: 'Invalid date format. Use YYYY-MM-DD.',
         },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
     // Upsert steps data (insert or update if exists)
     const { data, error } = await supabase
       .from('steps_logs')
-      .upsert({
-        user_id: userId,
-        date: targetDate,
-        steps: steps,
-        goal: goal,
-        source: source,
-      }, {
-        onConflict: 'user_id,date'
-      })
+      .upsert(
+        {
+          user_id: userId,
+          date: targetDate,
+          steps: steps,
+          goal: goal,
+          source: source,
+        },
+        {
+          onConflict: 'user_id,date',
+        },
+      )
       .select()
       .single()
 
     if (error) {
       console.error('Supabase error:', error)
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Failed to save steps data',
-          details: error.message
+          details: error.message,
         },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
@@ -142,34 +149,33 @@ export async function POST(request) {
           source: data.source,
           progress: parseFloat(progress),
         },
-        message: `Successfully saved ${steps.toLocaleString()} steps for ${targetDate}`
+        message: `Successfully saved ${steps.toLocaleString()} steps for ${targetDate}`,
       },
-      { status: 200 }
+      { status: 200 },
     )
-
   } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Internal server error',
-        details: error.message
+        details: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
 
 /**
  * GET /api/steps
- * 
+ *
  * Retrieve steps data for a user
- * 
+ *
  * Query Parameters:
  * - user_id: UUID (required if not authenticated)
  * - date: YYYY-MM-DD (optional, defaults to today)
  * - days: number (optional, returns last N days)
- * 
+ *
  * Response:
  * {
  *   "success": true,
@@ -193,30 +199,33 @@ export async function GET(request) {
 
     // Get user from Authorization header or use provided user_id
     let userId = user_id
-    
+
     if (!userId) {
       const authHeader = request.headers.get('authorization')
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7)
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-        
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser(token)
+
         if (authError || !user) {
           return NextResponse.json(
-            { 
-              success: false, 
-              error: 'Authentication required' 
+            {
+              success: false,
+              error: 'Authentication required',
             },
-            { status: 401 }
+            { status: 401 },
           )
         }
         userId = user.id
       } else {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: 'user_id is required when not authenticated' 
+          {
+            success: false,
+            error: 'user_id is required when not authenticated',
           },
-          { status: 400 }
+          { status: 400 },
         )
       }
     }
@@ -247,12 +256,12 @@ export async function GET(request) {
     if (error) {
       console.error('Supabase error:', error)
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Failed to fetch steps data',
-          details: error.message
+          details: error.message,
         },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
@@ -260,20 +269,19 @@ export async function GET(request) {
       {
         success: true,
         data: data,
-        count: data.length
+        count: data.length,
       },
-      { status: 200 }
+      { status: 200 },
     )
-
   } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Internal server error',
-        details: error.message
+        details: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

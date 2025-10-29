@@ -49,9 +49,12 @@ export default function CoachTab() {
   const loadCoachData = async () => {
     try {
       setLoading(true)
-      
+
       // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
       if (userError || !user) {
         console.error('User not authenticated:', userError)
         setLoading(false)
@@ -84,7 +87,7 @@ export default function CoachTab() {
 
       let dietAdherence = 0
       if (mealLogs && mealLogs.length > 0) {
-        const adherentMeals = mealLogs.filter(log => log.adherence_bool).length
+        const adherentMeals = mealLogs.filter((log) => log.adherence_bool).length
         dietAdherence = (adherentMeals / mealLogs.length) * 100
       }
 
@@ -98,7 +101,8 @@ export default function CoachTab() {
 
       let sleepQuality = 0
       if (sleepLogs && sleepLogs.length > 0) {
-        const avgQuality = sleepLogs.reduce((sum, log) => sum + (log.quality || 0), 0) / sleepLogs.length
+        const avgQuality =
+          sleepLogs.reduce((sum, log) => sum + (log.quality || 0), 0) / sleepLogs.length
         sleepQuality = (avgQuality / 5) * 100 // Convert 1-5 scale to percentage
       }
 
@@ -112,35 +116,36 @@ export default function CoachTab() {
 
       let stepsCompletion = 0
       if (stepsLogs && stepsLogs.length > 0) {
-        const completionRates = stepsLogs.map(log => Math.min((log.steps / log.goal) * 100, 100))
-        stepsCompletion = completionRates.reduce((sum, rate) => sum + rate, 0) / completionRates.length
+        const completionRates = stepsLogs.map((log) => Math.min((log.steps / log.goal) * 100, 100))
+        stepsCompletion =
+          completionRates.reduce((sum, rate) => sum + rate, 0) / completionRates.length
       }
 
       // Calculate Phoenix Score: 0.4·CT + 0.3·AD + 0.2·Sleep + 0.1·Steps
       const calculatedScore = Math.round(
         0.4 * trainingConsistency +
-        0.3 * dietAdherence +
-        0.2 * sleepQuality +
-        0.1 * stepsCompletion
+          0.3 * dietAdherence +
+          0.2 * sleepQuality +
+          0.1 * stepsCompletion,
       )
 
       setPhoenixScore(calculatedScore)
       setMetrics({
-        training: { 
-          percentage: Math.round(trainingConsistency), 
-          trend: trainingConsistency >= 70 ? 'up' : trainingConsistency >= 40 ? 'neutral' : 'down' 
+        training: {
+          percentage: Math.round(trainingConsistency),
+          trend: trainingConsistency >= 70 ? 'up' : trainingConsistency >= 40 ? 'neutral' : 'down',
         },
-        diet: { 
-          percentage: Math.round(dietAdherence), 
-          trend: dietAdherence >= 70 ? 'up' : dietAdherence >= 40 ? 'neutral' : 'down' 
+        diet: {
+          percentage: Math.round(dietAdherence),
+          trend: dietAdherence >= 70 ? 'up' : dietAdherence >= 40 ? 'neutral' : 'down',
         },
-        sleep: { 
-          percentage: Math.round(sleepQuality), 
-          trend: sleepQuality >= 70 ? 'up' : sleepQuality >= 40 ? 'neutral' : 'down' 
+        sleep: {
+          percentage: Math.round(sleepQuality),
+          trend: sleepQuality >= 70 ? 'up' : sleepQuality >= 40 ? 'neutral' : 'down',
         },
-        steps: { 
-          percentage: Math.round(stepsCompletion), 
-          trend: stepsCompletion >= 70 ? 'up' : stepsCompletion >= 40 ? 'neutral' : 'down' 
+        steps: {
+          percentage: Math.round(stepsCompletion),
+          trend: stepsCompletion >= 70 ? 'up' : stepsCompletion >= 40 ? 'neutral' : 'down',
         },
       })
 
@@ -169,7 +174,10 @@ export default function CoachTab() {
       setGenerating(true)
 
       // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
       if (userError || !user) {
         toast.error('Você precisa estar autenticado')
         setGenerating(false)
@@ -183,7 +191,7 @@ export default function CoachTab() {
 
       // Determine tone and message based on Phoenix Score
       let tone, message
-      
+
       if (phoenixScore >= 80) {
         tone = 'excellent'
         message = `Incrível! Seu Score Phoenix está em ${phoenixScore}. Você está mantendo uma consistência excepcional em todos os aspectos. Continue assim e os resultados virão! 🔥💪`
@@ -198,15 +206,18 @@ export default function CoachTab() {
       // Upsert message
       const { data, error } = await supabase
         .from('coach_messages')
-        .upsert({
-          user_id: user.id,
-          week_ref: weekRef,
-          tone: tone,
-          message: message,
-          score: phoenixScore,
-        }, {
-          onConflict: 'user_id,week_ref'
-        })
+        .upsert(
+          {
+            user_id: user.id,
+            week_ref: weekRef,
+            tone: tone,
+            message: message,
+            score: phoenixScore,
+          },
+          {
+            onConflict: 'user_id,week_ref',
+          },
+        )
         .select()
         .single()
 
@@ -232,7 +243,7 @@ export default function CoachTab() {
     const dayNum = d.getUTCDay() || 7
     d.setUTCDate(d.getUTCDate() + 4 - dayNum)
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7)
+    return Math.ceil(((d - yearStart) / 86400000 + 1) / 7)
   }
 
   // Calculate chart data for Phoenix Score ring
@@ -276,11 +287,11 @@ export default function CoachTab() {
   const getTrendIcon = (trend) => {
     switch (trend) {
       case 'up':
-        return <TrendingUp className="w-5 h-5 text-green-500" />
+        return <TrendingUp className="h-5 w-5 text-green-500" />
       case 'down':
-        return <TrendingDown className="w-5 h-5 text-red-500" />
+        return <TrendingDown className="h-5 w-5 text-red-500" />
       default:
-        return <Minus className="w-5 h-5 text-muted-foreground" />
+        return <Minus className="h-5 w-5 text-muted-foreground" />
     }
   }
 
@@ -324,13 +335,13 @@ export default function CoachTab() {
       <div className="space-y-6">
         <Card className="glass-card">
           <CardContent className="pt-6">
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="py-8 text-center text-muted-foreground">
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                 className="inline-block"
               >
-                <Sparkles className="w-8 h-8 text-phoenix-amber" />
+                <Sparkles className="h-8 w-8 text-phoenix-amber" />
               </motion.div>
               <p className="mt-2">Carregando seus dados...</p>
             </div>
@@ -348,10 +359,10 @@ export default function CoachTab() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Card className="glass-card border-phoenix-amber/30 overflow-hidden relative">
+        <Card className="glass-card relative overflow-hidden border-phoenix-amber/30">
           {/* Background gradient effect */}
           <div className="absolute inset-0 bg-gradient-to-br from-phoenix-amber/5 via-transparent to-phoenix-gold/5" />
-          
+
           {/* Elite Score Enhanced Background */}
           {isEliteScore && (
             <>
@@ -364,15 +375,15 @@ export default function CoachTab() {
                 transition={{
                   duration: 3,
                   repeat: Infinity,
-                  ease: "linear"
+                  ease: 'linear',
                 }}
               />
-              
+
               {/* Floating particles */}
               {[...Array(20)].map((_, i) => (
                 <motion.div
                   key={`bg-particle-${i}`}
-                  className="absolute w-1 h-1 rounded-full bg-phoenix-gold/40"
+                  className="absolute h-1 w-1 rounded-full bg-phoenix-gold/40"
                   style={{
                     left: `${Math.random() * 100}%`,
                     top: `${Math.random() * 100}%`,
@@ -386,14 +397,14 @@ export default function CoachTab() {
                     duration: 2 + Math.random() * 2,
                     repeat: Infinity,
                     delay: Math.random() * 2,
-                    ease: "easeOut"
+                    ease: 'easeOut',
                   }}
                 />
               ))}
-              
+
               {/* Pulsing border glow */}
               <motion.div
-                className="absolute inset-0 border-2 border-phoenix-amber/0 rounded-[20px]"
+                className="absolute inset-0 rounded-[20px] border-2 border-phoenix-amber/0"
                 animate={{
                   borderColor: [
                     'rgba(255, 179, 0, 0)',
@@ -409,13 +420,13 @@ export default function CoachTab() {
                 transition={{
                   duration: 2,
                   repeat: Infinity,
-                  ease: "easeInOut"
+                  ease: 'easeInOut',
                 }}
               />
             </>
           )}
-          
-          <CardContent className="pt-6 relative z-10">
+
+          <CardContent className="relative z-10 pt-6">
             <div className="flex items-center justify-between gap-6">
               {/* Left: Phoenix Logo + Title */}
               <div className="flex items-center gap-4">
@@ -426,7 +437,7 @@ export default function CoachTab() {
                       {[...Array(12)].map((_, i) => (
                         <motion.div
                           key={`particle-${i}`}
-                          className="absolute w-1.5 h-1.5 rounded-full bg-gradient-to-t from-phoenix-amber to-phoenix-gold"
+                          className="absolute h-1.5 w-1.5 rounded-full bg-gradient-to-t from-phoenix-amber to-phoenix-gold"
                           style={{
                             left: '50%',
                             top: '50%',
@@ -441,34 +452,38 @@ export default function CoachTab() {
                             duration: 2,
                             repeat: Infinity,
                             delay: i * 0.15,
-                            ease: "easeOut"
+                            ease: 'easeOut',
                           }}
                         />
                       ))}
                     </>
                   )}
-                  
+
                   {/* Phoenix Logo */}
                   <motion.div
-                    className="w-16 h-16 rounded-full bg-gradient-to-br from-phoenix-amber to-phoenix-gold flex items-center justify-center shadow-lg relative z-10"
-                    animate={isEliteScore ? {
-                      boxShadow: [
-                        '0 0 30px rgba(255, 179, 0, 0.6)',
-                        '0 0 50px rgba(255, 179, 0, 0.9)',
-                        '0 0 30px rgba(255, 179, 0, 0.6)',
-                      ],
-                      scale: [1, 1.05, 1],
-                    } : {
-                      boxShadow: [
-                        '0 0 20px rgba(255, 179, 0, 0.3)',
-                        '0 0 30px rgba(255, 179, 0, 0.5)',
-                        '0 0 20px rgba(255, 179, 0, 0.3)',
-                      ],
-                    }}
+                    className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-phoenix-amber to-phoenix-gold shadow-lg"
+                    animate={
+                      isEliteScore
+                        ? {
+                            boxShadow: [
+                              '0 0 30px rgba(255, 179, 0, 0.6)',
+                              '0 0 50px rgba(255, 179, 0, 0.9)',
+                              '0 0 30px rgba(255, 179, 0, 0.6)',
+                            ],
+                            scale: [1, 1.05, 1],
+                          }
+                        : {
+                            boxShadow: [
+                              '0 0 20px rgba(255, 179, 0, 0.3)',
+                              '0 0 30px rgba(255, 179, 0, 0.5)',
+                              '0 0 20px rgba(255, 179, 0, 0.3)',
+                            ],
+                          }
+                    }
                     transition={{
                       duration: isEliteScore ? 2 : 3,
                       repeat: Infinity,
-                      ease: "easeInOut"
+                      ease: 'easeInOut',
                     }}
                   >
                     {/* Wing Glow Effect for Elite Score */}
@@ -483,7 +498,7 @@ export default function CoachTab() {
                           transition={{
                             duration: 2,
                             repeat: Infinity,
-                            ease: "easeInOut"
+                            ease: 'easeInOut',
                           }}
                         />
                         {/* Rotating ring */}
@@ -497,66 +512,72 @@ export default function CoachTab() {
                             rotate: {
                               duration: 4,
                               repeat: Infinity,
-                              ease: "linear"
+                              ease: 'linear',
                             },
                             scale: {
                               duration: 2,
                               repeat: Infinity,
-                              ease: "easeInOut"
-                            }
+                              ease: 'easeInOut',
+                            },
                           }}
                         />
                       </>
                     )}
-                    
+
                     <motion.div
-                      animate={isEliteScore ? {
-                        rotate: [-5, 5, -5],
-                        scale: [1, 1.1, 1],
-                      } : {}}
+                      animate={
+                        isEliteScore
+                          ? {
+                              rotate: [-5, 5, -5],
+                              scale: [1, 1.1, 1],
+                            }
+                          : {}
+                      }
                       transition={{
                         duration: 2,
                         repeat: Infinity,
-                        ease: "easeInOut"
+                        ease: 'easeInOut',
                       }}
                     >
-                      <Flame className="w-8 h-8 text-white relative z-10" />
+                      <Flame className="relative z-10 h-8 w-8 text-white" />
                     </motion.div>
                   </motion.div>
                 </div>
-                
+
                 <div>
-                  <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <h2 className="flex items-center gap-2 text-2xl font-bold">
                     <motion.div
-                      animate={isEliteScore ? {
-                        rotate: [0, 360],
-                        scale: [1, 1.2, 1],
-                      } : {}}
+                      animate={
+                        isEliteScore
+                          ? {
+                              rotate: [0, 360],
+                              scale: [1, 1.2, 1],
+                            }
+                          : {}
+                      }
                       transition={{
                         rotate: {
                           duration: 3,
                           repeat: Infinity,
-                          ease: "linear"
+                          ease: 'linear',
                         },
                         scale: {
                           duration: 2,
                           repeat: Infinity,
-                          ease: "easeInOut"
-                        }
+                          ease: 'easeInOut',
+                        },
                       }}
                     >
-                      <Sparkles className="w-6 h-6 text-phoenix-amber" />
+                      <Sparkles className="h-6 w-6 text-phoenix-amber" />
                     </motion.div>
                     Coach Phoenix
                   </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Análise do seu progresso
-                  </p>
+                  <p className="text-sm text-muted-foreground">Análise do seu progresso</p>
                   {isEliteScore && (
                     <motion.p
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-xs font-bold text-phoenix-amber mt-1"
+                      className="mt-1 text-xs font-bold text-phoenix-amber"
                     >
                       ⭐ Performance Elite!
                     </motion.p>
@@ -565,7 +586,7 @@ export default function CoachTab() {
               </div>
 
               {/* Right: Phoenix Score Ring */}
-              <div className="relative w-32 h-32 flex-shrink-0">
+              <div className="relative h-32 w-32 flex-shrink-0">
                 {/* Elite Score Outer Glow Ring */}
                 {isEliteScore && (
                   <>
@@ -580,18 +601,18 @@ export default function CoachTab() {
                         scale: {
                           duration: 2,
                           repeat: Infinity,
-                          ease: "easeInOut"
+                          ease: 'easeInOut',
                         },
                         opacity: {
                           duration: 2,
                           repeat: Infinity,
-                          ease: "easeInOut"
+                          ease: 'easeInOut',
                         },
                         rotate: {
                           duration: 8,
                           repeat: Infinity,
-                          ease: "linear"
-                        }
+                          ease: 'linear',
+                        },
                       }}
                     />
                     <motion.div
@@ -603,12 +624,12 @@ export default function CoachTab() {
                       transition={{
                         duration: 2.5,
                         repeat: Infinity,
-                        ease: "easeInOut"
+                        ease: 'easeInOut',
                       }}
                     />
                   </>
                 )}
-                
+
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -629,36 +650,36 @@ export default function CoachTab() {
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
-                
-                <div className="absolute inset-0 flex items-center justify-center flex-col">
+
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <motion.span
                     key={phoenixScore}
                     initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ 
+                    animate={{
                       scale: isEliteScore ? [1, 1.15, 1] : 1,
-                      opacity: 1 
+                      opacity: 1,
                     }}
-                    transition={{ 
+                    transition={{
                       scale: {
                         duration: 1,
                         repeat: isEliteScore ? Infinity : 0,
                         repeatDelay: 1.5,
-                        ease: "easeInOut"
+                        ease: 'easeInOut',
                       },
-                      opacity: { duration: 0.5 }
+                      opacity: { duration: 0.5 },
                     }}
                     className={`text-3xl font-bold ${isEliteScore ? 'text-phoenix-amber' : 'text-phoenix-amber'}`}
                   >
                     {phoenixScore}
                   </motion.span>
                   <span className="text-xs text-muted-foreground">Score</span>
-                  
+
                   {/* Elite Badge */}
                   {isEliteScore && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="absolute -bottom-2 bg-gradient-to-r from-phoenix-amber to-phoenix-gold text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg"
+                      className="absolute -bottom-2 rounded-full bg-gradient-to-r from-phoenix-amber to-phoenix-gold px-2 py-0.5 text-[10px] font-bold text-white shadow-lg"
                     >
                       ELITE
                     </motion.div>
@@ -672,10 +693,10 @@ export default function CoachTab() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className={`mt-6 p-4 rounded-lg border relative overflow-hidden ${
-                isEliteScore 
-                  ? 'bg-gradient-to-r from-phoenix-amber/20 to-phoenix-gold/20 border-phoenix-amber/40' 
-                  : 'bg-gradient-to-r from-phoenix-amber/10 to-phoenix-gold/10 border-phoenix-amber/20'
+              className={`relative mt-6 overflow-hidden rounded-lg border p-4 ${
+                isEliteScore
+                  ? 'border-phoenix-amber/40 bg-gradient-to-r from-phoenix-amber/20 to-phoenix-gold/20'
+                  : 'border-phoenix-amber/20 bg-gradient-to-r from-phoenix-amber/10 to-phoenix-gold/10'
               }`}
             >
               {/* Elite Score Background Animation */}
@@ -689,14 +710,14 @@ export default function CoachTab() {
                     transition={{
                       duration: 2,
                       repeat: Infinity,
-                      ease: "linear"
+                      ease: 'linear',
                     }}
                   />
                   {/* Sparkles */}
                   {[...Array(6)].map((_, i) => (
                     <motion.div
                       key={`sparkle-${i}`}
-                      className="absolute w-1 h-1 rounded-full bg-phoenix-gold"
+                      className="absolute h-1 w-1 rounded-full bg-phoenix-gold"
                       style={{
                         left: `${15 + i * 15}%`,
                         top: `${20 + (i % 2) * 60}%`,
@@ -709,19 +730,17 @@ export default function CoachTab() {
                         duration: 1.5,
                         repeat: Infinity,
                         delay: i * 0.2,
-                        ease: "easeInOut"
+                        ease: 'easeInOut',
                       }}
                     />
                   ))}
                 </>
               )}
-              
-              <h3 className={`text-lg font-bold mb-1 relative z-10 ${scoreMessage.color}`}>
+
+              <h3 className={`relative z-10 mb-1 text-lg font-bold ${scoreMessage.color}`}>
                 {scoreMessage.title}
               </h3>
-              <p className="text-sm text-foreground/80 relative z-10">
-                {scoreMessage.message}
-              </p>
+              <p className="relative z-10 text-sm text-foreground/80">{scoreMessage.message}</p>
             </motion.div>
           </CardContent>
         </Card>
@@ -737,7 +756,7 @@ export default function CoachTab() {
           <Card className="glass-card border-phoenix-amber/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Sparkles className="w-5 h-5 text-phoenix-amber" />
+                <Sparkles className="h-5 w-5 text-phoenix-amber" />
                 Mensagem da Semana
               </CardTitle>
               <CardDescription>
@@ -745,14 +764,16 @@ export default function CoachTab() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className={`p-4 rounded-lg ${
-                latestMessage.tone === 'excellent' ? 'bg-phoenix-amber/10 border-phoenix-amber/30' :
-                latestMessage.tone === 'good' ? 'bg-green-500/10 border-green-500/30' :
-                'bg-orange-500/10 border-orange-500/30'
-              } border-2`}>
-                <p className="text-sm leading-relaxed">
-                  {latestMessage.message}
-                </p>
+              <div
+                className={`rounded-lg p-4 ${
+                  latestMessage.tone === 'excellent'
+                    ? 'border-phoenix-amber/30 bg-phoenix-amber/10'
+                    : latestMessage.tone === 'good'
+                      ? 'border-green-500/30 bg-green-500/10'
+                      : 'border-orange-500/30 bg-orange-500/10'
+                } border-2`}
+              >
+                <p className="text-sm leading-relaxed">{latestMessage.message}</p>
               </div>
             </CardContent>
           </Card>
@@ -760,27 +781,23 @@ export default function CoachTab() {
       )}
 
       {/* Generate Message Button */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
         <Button
           onClick={generateWeeklyMessage}
           disabled={generating}
-          className="w-full bg-gradient-to-r from-phoenix-amber to-phoenix-gold hover:opacity-90 transition-opacity"
+          className="w-full bg-gradient-to-r from-phoenix-amber to-phoenix-gold transition-opacity hover:opacity-90"
         >
-          <RefreshCw className={`w-4 h-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`mr-2 h-4 w-4 ${generating ? 'animate-spin' : ''}`} />
           {generating ? 'Gerando...' : 'Gerar Nova Mensagem Semanal'}
         </Button>
       </motion.div>
 
       {/* Metrics Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {Object.entries(metrics).map(([key, data], index) => {
           const config = metricsConfig[key]
           const Icon = config.icon
-          
+
           return (
             <motion.div
               key={key}
@@ -788,38 +805,47 @@ export default function CoachTab() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + index * 0.1 }}
             >
-              <Card className={`glass-card ${config.borderColor} border-2 hover:shadow-lg transition-shadow`}>
+              <Card
+                className={`glass-card ${config.borderColor} border-2 transition-shadow hover:shadow-lg`}
+              >
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Icon className={`w-5 h-5 ${config.color}`} />
+                      <Icon className={`h-5 w-5 ${config.color}`} />
                       <span className="text-base">{config.label}</span>
                     </div>
                     {getTrendIcon(data.trend)}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className={`p-4 rounded-lg ${config.bgColor}`}>
+                  <div className={`rounded-lg p-4 ${config.bgColor}`}>
                     <div className="flex items-baseline gap-2">
                       <motion.span
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ delay: 0.4 + index * 0.1, type: "spring" }}
+                        transition={{
+                          delay: 0.4 + index * 0.1,
+                          type: 'spring',
+                        }}
                         className={`text-4xl font-bold ${config.color}`}
                       >
                         {data.percentage}
                       </motion.span>
                       <span className="text-lg text-muted-foreground">%</span>
                     </div>
-                    <div className="mt-2 h-2 bg-secondary rounded-full overflow-hidden">
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${data.percentage}%` }}
-                        transition={{ delay: 0.5 + index * 0.1, duration: 0.8, ease: "easeOut" }}
+                        transition={{
+                          delay: 0.5 + index * 0.1,
+                          duration: 0.8,
+                          ease: 'easeOut',
+                        }}
                         className={`h-full bg-gradient-to-r ${config.progressColor}`}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="mt-2 text-xs text-muted-foreground">
                       {data.trend === 'up' && '↗ Melhorando'}
                       {data.trend === 'down' && '↘ Precisa atenção'}
                       {data.trend === 'neutral' && '→ Estável'}
@@ -841,47 +867,52 @@ export default function CoachTab() {
         <Card className="glass-card border-phoenix-amber/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Target className="w-5 h-5 text-phoenix-amber" />
+              <Target className="h-5 w-5 text-phoenix-amber" />
               Recomendações Personalizadas
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {metrics.sleep.percentage < 70 && (
-              <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+              <div className="rounded-lg border border-purple-500/20 bg-purple-500/10 p-3">
                 <p className="text-sm">
-                  <span className="font-semibold">😴 Sono:</span> Sua qualidade de sono está abaixo do ideal. Tente dormir mais cedo e evite telas 1h antes de dormir.
+                  <span className="font-semibold">😴 Sono:</span> Sua qualidade de sono está abaixo
+                  do ideal. Tente dormir mais cedo e evite telas 1h antes de dormir.
                 </p>
               </div>
             )}
-            
+
             {metrics.training.percentage > 80 && (
-              <div className="p-3 rounded-lg bg-phoenix-amber/10 border border-phoenix-amber/20">
+              <div className="rounded-lg border border-phoenix-amber/20 bg-phoenix-amber/10 p-3">
                 <p className="text-sm">
-                  <span className="font-semibold">💪 Treino:</span> Excelente consistência! Continue assim e varie os exercícios para melhores resultados.
+                  <span className="font-semibold">💪 Treino:</span> Excelente consistência! Continue
+                  assim e varie os exercícios para melhores resultados.
                 </p>
               </div>
             )}
-            
+
             {metrics.diet.percentage < 75 && (
-              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+              <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-3">
                 <p className="text-sm">
-                  <span className="font-semibold">🥗 Dieta:</span> Planeje suas refeições com antecedência para melhorar a aderência à sua dieta.
+                  <span className="font-semibold">🥗 Dieta:</span> Planeje suas refeições com
+                  antecedência para melhorar a aderência à sua dieta.
                 </p>
               </div>
             )}
 
             {metrics.steps.percentage > 90 && (
-              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
                 <p className="text-sm">
-                  <span className="font-semibold">🚶 Passos:</span> Você está batendo suas metas de atividade diária! Continue se movimentando!
+                  <span className="font-semibold">🚶 Passos:</span> Você está batendo suas metas de
+                  atividade diária! Continue se movimentando!
                 </p>
               </div>
             )}
 
             {/* General tip */}
-            <div className="p-3 rounded-lg bg-phoenix-amber/10 border border-phoenix-amber/20">
+            <div className="rounded-lg border border-phoenix-amber/20 bg-phoenix-amber/10 p-3">
               <p className="text-sm">
-                <span className="font-semibold">💡 Dica:</span> Consistência é a chave! Pequenas melhorias diárias levam a grandes resultados.
+                <span className="font-semibold">💡 Dica:</span> Consistência é a chave! Pequenas
+                melhorias diárias levam a grandes resultados.
               </p>
             </div>
           </CardContent>
@@ -889,14 +920,10 @@ export default function CoachTab() {
       </motion.div>
 
       {/* Formula Card */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-      >
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
         <Card className="glass-card border-dashed">
           <CardContent className="pt-6">
-            <p className="text-xs text-center text-muted-foreground">
+            <p className="text-center text-xs text-muted-foreground">
               <strong>Score Phoenix:</strong> 40% Treino + 30% Dieta + 20% Sono + 10% Passos
             </p>
           </CardContent>

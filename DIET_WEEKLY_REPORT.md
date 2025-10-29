@@ -5,6 +5,7 @@
 ### 📈 Weekly Report com Chart
 
 **Bar Chart Interativo (Recharts)**
+
 - Visualização diária de aderência (Seg-Dom)
 - Barras coloridas em âmbar (#FFB300)
 - Border radius 8px no topo das barras
@@ -14,6 +15,7 @@
   - % de aderência
 
 **Dados Exibidos:**
+
 ```javascript
 weeklyChartData = [
   { day: 'Seg', score: 100, conformCount: 4 },
@@ -25,6 +27,7 @@ weeklyChartData = [
 ### 🤖 Coach Phoenix Feedback
 
 **Sistema Inteligente de Análise:**
+
 - Analisa padrões semanais completos
 - Detecta dias perdidos, dias perfeitos, sequências
 - Gera feedback contextual e acionável
@@ -33,48 +36,56 @@ weeklyChartData = [
 **Mensagens por Contexto:**
 
 **1. Lendário (90%+ com 5+ dias perfeitos)**
+
 ```
 🔥 Lendário!
 "5 dias perfeitos esta semana! Você está no seu melhor."
 ```
 
 **2. Excelente (90%+)**
+
 ```
 🔥 Excelente consistência
 "Sua disciplina está impecável. Continue assim, campeão!"
 ```
 
 **3. Quase lá (75-89% com 2+ dias perdidos)**
+
 ```
 ⚠️ Quase lá!
 "Perdeu 2 dias. Planeje suas refeições com antecedência."
 ```
 
 **4. Bom trabalho (75-89%)**
+
 ```
 💪 Bom trabalho
 "Sequência de 4 dias! Mantenha o ritmo."
 ```
 
 **5. Atenção aos gaps (60-74% com 3+ dias perdidos)**
+
 ```
 ⚠️ Atenção aos gaps
 "3 dias sem controle. Prepare lanches práticos."
 ```
 
 **6. Melhorando (60-74%)**
+
 ```
 📈 Melhorando
 "Você está progredindo. Foque nos lanches entre refeições."
 ```
 
 **7. Hora de ajustar (<60% com 4+ dias perdidos)**
+
 ```
 ⚠️ Hora de ajustar
 "4 dias perdidos. Vamos focar no básico: café, almoço e jantar."
 ```
 
 **8. Vamos recomeçar (<60%)**
+
 ```
 🎯 Vamos recomeçar
 "Escolha 2 refeições para controlar esta semana. Pequenos passos levam longe."
@@ -104,30 +115,35 @@ weeklyChartData = [
 **MealCard Animations:**
 
 **On Click:**
+
 - Scale: 1.05 → 0.95 (spring animation)
 - Status icon: Rotação + Scale bounce
 - Icon principal: Fade + Scale sutil
 - Border: Smooth color transition
 
 **Check/Uncheck:**
+
 - AnimatePresence com rotate (-180° → 0°)
 - Scale bounce (0 → 1.2 → 1)
 - Spring physics: stiffness 500, damping 25
 - Duration: 300ms
 
 **Success Effect:**
+
 - Shimmer horizontal ao marcar conforme
 - Gradiente branco semi-transparente
 - Easing: ease-in-out
 - Duration: 600ms
 
 **Hover:**
+
 - Scale: 1 → 1.05
 - Gradient overlay: 0 → 10% opacity
 - Icon opacity: 30% → 40%
 - Smooth 300ms transition
 
 **Colors:**
+
 - Verde (conforme): bg-green-500/20, border-green-500/40
 - Vermelho (fora): bg-red-500/10, border-red-500/20
 - Sombra: shadow-green-500/10 quando conforme
@@ -190,12 +206,13 @@ adherencePercent < 60%
 ### Coach Feedback Card
 
 **Glassmorphism + Phoenix Theme:**
+
 ```css
 .feedback-card {
   padding: 1rem;
   border-radius: 0.5rem;
   border-width: 2px;
-  
+
   /* Dinâmico por contexto */
   background: ${coachFeedback.bgColor};
   border-color: ${coachFeedback.borderColor};
@@ -203,6 +220,7 @@ adherencePercent < 60%
 ```
 
 **Variações de Cor:**
+
 - 🔥 Lendário: `bg-phoenix-amber/10, border-phoenix-amber/30`
 - 💪 Bom: `bg-green-500/10, border-green-500/30`
 - ⚠️ Atenção: `bg-yellow-500/10, border-yellow-500/30`
@@ -217,7 +235,7 @@ adherencePercent < 60%
   text-align: center;
   padding: 0.75rem;
   border-radius: 0.5rem;
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .stat-value {
@@ -235,17 +253,19 @@ adherencePercent < 60%
 ### Bar Chart
 
 **Configuração Recharts:**
+
 ```javascript
 <BarChart data={weeklyChartData}>
-  <Bar 
-    dataKey="score" 
-    fill="#FFB300"        // Phoenix Amber
+  <Bar
+    dataKey="score"
+    fill="#FFB300" // Phoenix Amber
     radius={[8, 8, 0, 0]} // Rounded top corners
   />
 </BarChart>
 ```
 
 **Custom Tooltip:**
+
 - Glass card effect
 - Border phoenix-amber/20
 - Padding: 12px
@@ -258,6 +278,7 @@ adherencePercent < 60%
 ### MealCard Component
 
 **Spring Physics:**
+
 ```javascript
 transition={{
   type: "spring",
@@ -267,19 +288,21 @@ transition={{
 ```
 
 **Status Icon Transition:**
+
 ```javascript
 // Check aparece
 initial={{ scale: 0, rotate: -180 }}
 animate={{ scale: 1, rotate: 0 }}
 
 // Bounce ao marcar
-animate={{ 
+animate={{
   scale: [1, 1.2, 1],
   rotate: [0, 10, 0]
 }}
 ```
 
 **Shimmer Effect:**
+
 ```javascript
 // Sweep horizontal
 initial={{ x: '-100%' }}
@@ -291,10 +314,11 @@ className="bg-gradient-to-r from-transparent via-white/20 to-transparent"
 ```
 
 **Icon Subtle Animation:**
+
 ```javascript
-animate={{ 
+animate={{
   opacity: isConform ? 0.4 : 0.2,
-  scale: isConform ? 1.05 : 1 
+  scale: isConform ? 1.05 : 1
 }}
 transition={{ duration: 0.3 }}
 ```
@@ -306,6 +330,7 @@ transition={{ duration: 0.3 }}
 ### Semana Excelente (92%)
 
 **Chart:**
+
 ```
 Seg: ████████████ 100%
 Ter: ████████████ 100%
@@ -317,11 +342,13 @@ Dom: ████████████ 100%
 ```
 
 **Stats:**
+
 - Dias Perfeitos: 5
 - Melhor Sequência: 7
 - Média Diária: 93%
 
 **Feedback:**
+
 ```
 🔥 Lendário!
 5 dias perfeitos esta semana! Você está no seu melhor.
@@ -330,6 +357,7 @@ Dom: ████████████ 100%
 ### Semana Moderada (68%)
 
 **Chart:**
+
 ```
 Seg: ████████████ 100%
 Ter: ██████       50%
@@ -341,11 +369,13 @@ Dom: ██████       75%
 ```
 
 **Stats:**
+
 - Dias Perfeitos: 3
 - Melhor Sequência: 3
 - Média Diária: 68%
 
 **Feedback:**
+
 ```
 ⚠️ Atenção aos gaps
 3 dias sem controle. Prepare lanches práticos.
@@ -356,26 +386,31 @@ Dom: ██████       75%
 ## 🧪 Testando
 
 ### 1. Navegue para Dieta
+
 - Entre no Phoenix Coach
 - Vá para tab **Dieta** 🥗
 
 ### 2. Marque Refeições
+
 - Click em vários cards
 - Observe transições suaves
 - Veja shimmer effect ao marcar
 
 ### 3. Veja Análise Semanal
+
 - Scroll para baixo
 - Bar chart mostra distribuição
 - Coach feedback aparece com fade-in
 - Quick stats atualizam
 
 ### 4. Teste Diferentes Padrões
+
 - Marque semana perfeita → Veja "🔥 Lendário!"
 - Deixe dias vazios → Veja "⚠️ Atenção aos gaps"
 - Mude padrão → Feedback atualiza
 
 ### 5. Navegue Semanas
+
 - Use ◀️ ▶️
 - Chart recarrega
 - Feedback recalcula
@@ -386,6 +421,7 @@ Dom: ██████       75%
 ## 📁 Arquivos Modificados
 
 **Atualizados:**
+
 - `/app/components/DietPlanner.js`
   - +150 linhas de código
   - Função `analyzeWeeklyPattern()`
@@ -399,18 +435,21 @@ Dom: ██████       75%
 ## 🎯 Métricas de Performance
 
 **Animações:**
+
 - 60 FPS constante
 - GPU accelerated (transform, opacity)
 - No layout thrashing
 - Smooth spring physics
 
 **Cálculos:**
+
 - analyzeWeeklyPattern: O(28) = constante
 - getCoachFeedback: O(1) = tree decision
 - weeklyChartData: O(7) = constante
 - **Total: < 1ms de overhead**
 
 **Bundle Size:**
+
 - Recharts: já incluído
 - Framer Motion: já incluído
 - Código adicional: ~5KB
@@ -420,22 +459,26 @@ Dom: ██████       75%
 ## 🚀 Possíveis Expansões
 
 ### Fase 1: Comparação Temporal
+
 - Semana atual vs semana anterior
 - Gráfico de tendência (4 semanas)
 - Indicadores de melhora/piora
 
 ### Fase 2: Goals Personalizados
+
 - Usuário define meta de aderência
 - Feedback ajustado à meta
 - Notificações de milestone
 
 ### Fase 3: Insights Avançados
+
 - Melhor dia da semana
 - Refeição mais consistente
 - Horários críticos
 - Correlações com treino/sono
 
 ### Fase 4: Gamification
+
 - Badges por conquistas
 - XP por dia perfeito
 - Leaderboard (opcional)
@@ -465,6 +508,7 @@ Dom: ██████       75%
 **🎉 Weekly Report e Coach Phoenix Feedback completos!**
 
 **Teste agora:**
+
 1. Vá para tab Dieta 🥗
 2. Marque refeições e veja transições
 3. Scroll para "Análise Semanal"

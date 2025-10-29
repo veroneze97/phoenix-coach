@@ -28,7 +28,11 @@ export default function PhoenixScoreCard() {
       else if (data && data.length > 0) {
         const s = data[0].phoenix_score ?? 0
         setScore(Math.round(s))
-        setWeek(format(new Date(data[0].week_start), "dd 'de' MMMM", { locale: ptBR }))
+        setWeek(
+          format(new Date(data[0].week_start), "dd 'de' MMMM", {
+            locale: ptBR,
+          }),
+        )
         if (s >= 85) setLabel('🔥 Excelente')
         else if (s >= 70) setLabel('💪 Muito bom')
         else if (s >= 50) setLabel('⚡ Regular')
@@ -39,17 +43,17 @@ export default function PhoenixScoreCard() {
   }, [user])
 
   return (
-    <Card className="p-4 border border-phoenix-amber/30 bg-gradient-to-br from-phoenix-amber/10 to-phoenix-gold/10 rounded-xl">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Flame className="w-5 h-5 text-phoenix-amber" />
+    <Card className="rounded-xl border border-phoenix-amber/30 bg-gradient-to-br from-phoenix-amber/10 to-phoenix-gold/10 p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-lg font-semibold">
+          <Flame className="h-5 w-5 text-phoenix-amber" />
           Phoenix Score
         </h3>
         {week && <span className="text-xs text-muted-foreground">{week}</span>}
       </div>
 
       {score === null ? (
-        <p className="text-center text-muted-foreground text-sm">Carregando...</p>
+        <p className="text-center text-sm text-muted-foreground">Carregando...</p>
       ) : (
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
@@ -63,15 +67,15 @@ export default function PhoenixScoreCard() {
       )}
 
       {score !== null && (
-        <div className="flex justify-center gap-3 mt-4 text-xs text-muted-foreground">
+        <div className="mt-4 flex justify-center gap-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-green-500" /> Adesão
+            <TrendingUp className="h-3 w-3 text-green-500" /> Adesão
           </div>
           <div className="flex items-center gap-1">
-            <Zap className="w-3 h-3 text-yellow-500" /> Volume
+            <Zap className="h-3 w-3 text-yellow-500" /> Volume
           </div>
           <div className="flex items-center gap-1">
-            <Flame className="w-3 h-3 text-red-500" /> RPE
+            <Flame className="h-3 w-3 text-red-500" /> RPE
           </div>
         </div>
       )}

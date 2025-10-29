@@ -46,9 +46,9 @@ function ExerciseLibraryDialogComponent({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="max-w-2xl max-h-[80vh] glass-card backdrop-blur-xl border-phoenix-amber/20">
+      <DialogContent className="glass-card max-h-[80vh] max-w-2xl border-phoenix-amber/20 backdrop-blur-xl">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900">
             📚 Biblioteca de Exercícios
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
@@ -58,7 +58,7 @@ function ExerciseLibraryDialogComponent({
 
         {/* 🔍 Campo de busca */}
         <div className="relative my-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar exercício..."
             value={searchQuery}
@@ -74,9 +74,7 @@ function ExerciseLibraryDialogComponent({
             variant={selectedCategory === 'all' ? 'default' : 'outline'}
             onClick={() => setSelectedCategory('all')}
             className={
-              selectedCategory === 'all'
-                ? 'bg-phoenix-amber text-white hover:opacity-90'
-                : ''
+              selectedCategory === 'all' ? 'bg-phoenix-amber text-white hover:opacity-90' : ''
             }
           >
             Todos
@@ -89,9 +87,7 @@ function ExerciseLibraryDialogComponent({
               variant={selectedCategory === key ? 'default' : 'outline'}
               onClick={() => setSelectedCategory(key)}
               className={
-                selectedCategory === key
-                  ? 'bg-phoenix-amber text-white hover:opacity-90'
-                  : ''
+                selectedCategory === key ? 'bg-phoenix-amber text-white hover:opacity-90' : ''
               }
             >
               {cat.icon} {cat.name}
@@ -103,11 +99,7 @@ function ExerciseLibraryDialogComponent({
         <ScrollArea className="h-[400px] pr-3">
           <AnimatePresence>
             {filteredLibrary.length > 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="space-y-2"
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
                 {filteredLibrary.map((exercise) => (
                   <motion.div
                     key={exercise.id}
@@ -118,14 +110,14 @@ function ExerciseLibraryDialogComponent({
                   >
                     <Button
                       variant="ghost"
-                      className="w-full justify-between h-auto py-3 px-4 rounded-xl hover:bg-phoenix-amber/10 transition-all"
+                      className="h-auto w-full justify-between rounded-xl px-4 py-3 transition-all hover:bg-phoenix-amber/10"
                       onClick={() => {
                         onAddExercise(exercise)
                         setIsOpen(false)
                       }}
                     >
                       <div className="flex flex-col items-start">
-                        <span className="font-medium text-sm">
+                        <span className="text-sm font-medium">
                           {exercise.name_pt || exercise.name}
                         </span>
                         <span className="text-xs text-muted-foreground">
@@ -135,7 +127,7 @@ function ExerciseLibraryDialogComponent({
                       </div>
                       <motion.span
                         whileHover={{ scale: 1.1 }}
-                        className="text-phoenix-amber text-xs font-semibold"
+                        className="text-xs font-semibold text-phoenix-amber"
                       >
                         + Adicionar
                       </motion.span>
@@ -147,7 +139,7 @@ function ExerciseLibraryDialogComponent({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-center py-10 text-muted-foreground text-sm"
+                className="py-10 text-center text-sm text-muted-foreground"
               >
                 Nenhum exercício encontrado 💤
               </motion.div>

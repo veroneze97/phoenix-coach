@@ -11,6 +11,7 @@ No **SQL Editor** do Supabase, execute:
 ```
 
 Isso criará:
+
 - ✅ `meal_plans` - Planos semanais
 - ✅ `meal_logs` - Logs diários de aderência
 - ✅ RLS (Row Level Security) habilitado
@@ -24,27 +25,32 @@ Isso criará:
 ### 🔄 CRUD Completo
 
 **CREATE**
+
 - Inserção automática ao clicar no card
 - Upsert para evitar duplicatas
 - Constraint: `UNIQUE(user_id, date, meal_type)`
 
 **READ**
+
 - Carrega semana completa ao abrir
 - Query otimizada com `in('date', weekDates)`
 - Transforma dados para formato de grid
 
 **UPDATE**
+
 - Update automático ao alternar card
 - Optimistic UI (atualiza antes de salvar)
 - Rollback em caso de erro
 
 **DELETE**
+
 - Não implementado diretamente
 - Use "Limpar Semana" para resetar
 
 ### ⚡ Sync Automático
 
 **Por Refeição:**
+
 ```javascript
 // Click no card → Toggle → Save automático
 toggleMeal(dayIndex, mealId)
@@ -58,6 +64,7 @@ Error: ⏪ Reverte UI
 ```
 
 **Por Semana:**
+
 - Navega ◀️▶️ → Carrega nova semana
 - useEffect monitora mudança de `currentWeek`
 - Load automático no mount
@@ -65,6 +72,7 @@ Error: ⏪ Reverte UI
 ### 📅 Gerenciamento de Semanas
 
 **Cálculo de Datas:**
+
 ```javascript
 getWeekDates(weekOffset)
   ↓
@@ -73,11 +81,13 @@ Exemplo: ['2025-01-13', '2025-01-14', ...]
 ```
 
 **Navegação:**
+
 - `currentWeek = 0`: Esta semana
 - `currentWeek = -1`: Semana passada
 - `currentWeek = 1`: Próxima semana
 
 **Week Reference:**
+
 ```javascript
 getWeekRef(0) // '2025-W03'
 // Formato ISO 8601: YYYY-Www
@@ -132,7 +142,7 @@ CREATE POLICY "Users can view own meal logs"
   ON meal_logs FOR SELECT
   USING (auth.uid() = user_id);
 
--- INSERT: Usuários criam apenas suas refeições  
+-- INSERT: Usuários criam apenas suas refeições
 CREATE POLICY "Users can create own meal logs"
   ON meal_logs FOR INSERT
   WITH CHECK (auth.uid() = user_id);
@@ -149,6 +159,7 @@ CREATE POLICY "Users can delete own meal logs"
 ```
 
 **Testando RLS:**
+
 1. Entre com usuário A
 2. Crie refeições
 3. Entre com usuário B
@@ -192,6 +203,7 @@ toggleMeal(dayIndex, mealId)
 ### 3. Ações em Lote
 
 **Marcar Tudo Conforme:**
+
 ```javascript
 markAllConform()
   ↓
@@ -205,6 +217,7 @@ Toast: "Semana marcada como conforme! 🔥"
 ```
 
 **Limpar Semana:**
+
 ```javascript
 clearWeek()
   ↓
@@ -220,23 +233,26 @@ Reload semana
 ## 🎯 Performance & Otimizações
 
 ### Índices Criados
+
 ```sql
 -- Busca por usuário + semana
-CREATE INDEX idx_meal_logs_user_date 
+CREATE INDEX idx_meal_logs_user_date
 ON meal_logs(user_id, date DESC);
 
 -- Busca específica
-CREATE INDEX idx_meal_logs_user_date_type 
+CREATE INDEX idx_meal_logs_user_date_type
 ON meal_logs(user_id, date, meal_type);
 ```
 
 ### Optimistic UI
+
 - **Update imediato** na interface
 - **Save assíncrono** no background
 - **Rollback** apenas em caso de erro
 - UX responsiva mesmo com latência
 
 ### Batch Operations
+
 - **markAllConform/clearWeek** usam `.upsert([array])`
 - Uma única requisição para 28 registros
 - Mais eficiente que 28 requisições individuais
@@ -246,28 +262,29 @@ ON meal_logs(user_id, date, meal_type);
 ## 🧪 Testando a Integração
 
 ### 1. Verificar Tabelas
+
 ```sql
 -- No Supabase SQL Editor
-SELECT * FROM meal_logs 
+SELECT * FROM meal_logs
 WHERE user_id = 'your-user-id'
 ORDER BY date DESC, meal_type;
 ```
 
 ### 2. Testar RLS
+
 ```javascript
 // Console do navegador
-const { data, error } = await supabase
-  .from('meal_logs')
-  .select('*')
+const { data, error } = await supabase.from('meal_logs').select('*')
 
 console.log(data) // Deve mostrar apenas suas refeições
 ```
 
 ### 3. Monitorar Requisições
+
 ```
 1. Abra DevTools → Network
 2. Navegue para tab Dieta
-3. Veja requisição: 
+3. Veja requisição:
    POST /rest/v1/meal_logs?select=*
 4. Click em card
 5. Veja: POST /rest/v1/meal_logs (upsert)
@@ -278,22 +295,26 @@ console.log(data) // Deve mostrar apenas suas refeições
 ## 🐛 Troubleshooting
 
 ### "Erro ao carregar dados da semana"
+
 **Causa**: Problema com RLS ou tabela não existe
 
 **Solução**:
+
 1. Verifique se executou `DIET_SUPABASE_SCHEMA.sql`
 2. Confira se RLS está habilitado:
    ```sql
-   SELECT schemaname, tablename, rowsecurity 
-   FROM pg_tables 
+   SELECT schemaname, tablename, rowsecurity
+   FROM pg_tables
    WHERE tablename = 'meal_logs';
    ```
 3. Deve retornar `rowsecurity = true`
 
 ### "Erro ao salvar alteração"
+
 **Causa**: Constraint violation ou RLS bloqueando
 
 **Solução**:
+
 1. Verifique se user_id está correto
 2. Confira unique constraint:
    ```sql
@@ -305,17 +326,21 @@ console.log(data) // Deve mostrar apenas suas refeições
 3. Deve haver no máximo 1 registro
 
 ### Cards não mudam de cor
+
 **Causa**: Estado local dessinc com Supabase
 
 **Solução**:
+
 1. Navegue para outra semana ◀️
 2. Volte para semana atual ▶️
 3. Isso força reload completo
 
 ### Dados não persistem
+
 **Causa**: Supabase não configurado
 
 **Solução**:
+
 1. Verifique `.env.local`:
    ```
    NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
@@ -328,21 +353,25 @@ console.log(data) // Deve mostrar apenas suas refeições
 ## 🚀 Próximas Features (Roadmap)
 
 ### Fase 1: Meal Planning
+
 - Template de refeições
 - Copiar semana anterior
 - Gerar plano baseado em goals
 
 ### Fase 2: Nutrition Tracking
+
 - Input de calorias por refeição
 - Cálculo de macros (proteína, carbs, fat)
 - Metas diárias personalizadas
 
 ### Fase 3: Food Database
+
 - Integração com API de alimentos
 - Busca rápida de itens
 - Cálculo automático de nutrientes
 
 ### Fase 4: Analytics
+
 - Gráficos de tendência (Recharts)
 - Correlação peso × aderência
 - Insights personalizados
@@ -353,22 +382,25 @@ console.log(data) // Deve mostrar apenas suas refeições
 ## 📊 Métricas Atuais
 
 **Dados Salvos:**
+
 - ✅ Aderência por refeição (boolean)
 - ✅ Data da refeição
 - ✅ Tipo da refeição
 - ✅ Timestamps (created/updated)
 
 **Campos Preparados (não usados ainda):**
+
 - 📝 Notes (texto livre)
 - 🔢 Calories (integer)
 
 **Para adicionar calorias:**
+
 ```javascript
 const { error } = await supabase
   .from('meal_logs')
-  .update({ 
+  .update({
     calories: 450,
-    notes: 'Omelete + Aveia'
+    notes: 'Omelete + Aveia',
   })
   .eq('id', mealLogId)
 ```
@@ -378,11 +410,13 @@ const { error } = await supabase
 ## 📁 Arquivos
 
 **Criados:**
+
 - `/app/DIET_SUPABASE_SCHEMA.sql` - Schema completo
 - `/app/DIET_BACKEND_INTEGRATION.md` - Esta documentação
 - `/app/components/DietPlanner.js` - Atualizado com Supabase
 
 **Removidos:**
+
 - `/app/components/DietPlanner.old.js` - Backup do scaffold
 
 ---
@@ -409,6 +443,7 @@ const { error } = await supabase
 **🎉 Módulo de Dieta totalmente conectado ao Supabase!**
 
 Teste agora:
+
 1. Vá para tab **Dieta** 🥗
 2. Click nos cards para alternar
 3. Navegue entre semanas ◀️ ▶️

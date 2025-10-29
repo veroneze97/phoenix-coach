@@ -1,9 +1,11 @@
 # Guia de Configuração - Google OAuth no Supabase
 
 ## Problema
+
 Erro ao tentar conectar com Google no Phoenix Coach.
 
 ## Causa
+
 O provedor Google OAuth não está configurado no projeto Supabase.
 
 ## Solução - Configurar Google OAuth
@@ -54,7 +56,8 @@ Se não quiser configurar agora, pode remover o botão Google:
 Procure e comente o botão Google:
 
 ```javascript
-{/* Temporariamente desabilitado
+{
+  /* Temporariamente desabilitado
 <Button
   variant="outline"
   className="w-full"
@@ -62,7 +65,8 @@ Procure e comente o botão Google:
 >
   <svg ... /> Entrar com Google
 </Button>
-*/}
+*/
+}
 ```
 
 ---
@@ -79,14 +83,17 @@ Para verificar se o Google OAuth está habilitado no Supabase:
 ## Logs de Erro Comuns
 
 **Erro:** "Invalid provider"
+
 - **Causa:** Google não habilitado no Supabase
 - **Solução:** Seguir Passo 2 acima
 
 **Erro:** "redirect_uri_mismatch"
+
 - **Causa:** URL de redirecionamento não configurada no Google Console
 - **Solução:** Adicionar callback URL correto no Google Console
 
 **Erro:** "access_denied"
+
 - **Causa:** Usuário cancelou ou não autorizou
 - **Solução:** Tentar novamente e autorizar
 
@@ -95,7 +102,7 @@ Para verificar se o Google OAuth está habilitado no Supabase:
 ## Suporte
 
 Se o erro persistir, por favor compartilhe:
+
 1. Mensagem de erro exata do console do navegador
 2. Screenshot do erro
 3. Status do Google Provider no Supabase Dashboard
-

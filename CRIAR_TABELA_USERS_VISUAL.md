@@ -1,6 +1,7 @@
 # Solução Alternativa - Criar Tabela Users via Interface Visual
 
 ## Problema
+
 O SQL não está criando a tabela `users` ou o cache não atualizou.
 
 ## Solução Alternativa - Usar Table Editor
@@ -23,16 +24,16 @@ O SQL não está criando a tabela `users` ou o cache não atualizou.
 
 **Colunas (adicione uma por uma):**
 
-| Nome | Tipo | Default | Opcional |
-|------|------|---------|----------|
-| `id` | uuid | `NULL` | ❌ (Primary Key) |
-| `name` | text | `NULL` | ✅ |
-| `email` | text | `NULL` | ✅ |
-| `height_cm` | int4 | `NULL` | ✅ |
-| `weight_kg` | numeric | `NULL` | ✅ |
-| `goals_json` | jsonb | `'{}'` | ✅ |
-| `created_at` | timestamptz | `now()` | ✅ |
-| `updated_at` | timestamptz | `now()` | ✅ |
+| Nome         | Tipo        | Default | Opcional         |
+| ------------ | ----------- | ------- | ---------------- |
+| `id`         | uuid        | `NULL`  | ❌ (Primary Key) |
+| `name`       | text        | `NULL`  | ✅               |
+| `email`      | text        | `NULL`  | ✅               |
+| `height_cm`  | int4        | `NULL`  | ✅               |
+| `weight_kg`  | numeric     | `NULL`  | ✅               |
+| `goals_json` | jsonb       | `'{}'`  | ✅               |
+| `created_at` | timestamptz | `now()` | ✅               |
+| `updated_at` | timestamptz | `now()` | ✅               |
 
 4. Em **Primary Key**, selecione: `id`
 5. Clique em **Save**
@@ -58,16 +59,19 @@ O SQL não está criando a tabela `users` ou o cache não atualizou.
 3. Crie 3 políticas:
 
 **Política 1 - SELECT:**
+
 - Nome: `Users can view own profile`
 - Policy command: `SELECT`
 - USING expression: `auth.uid() = id`
 
 **Política 2 - UPDATE:**
+
 - Nome: `Users can update own profile`
 - Policy command: `UPDATE`
 - USING expression: `auth.uid() = id`
 
 **Política 3 - INSERT:**
+
 - Nome: `Users can insert own profile`
 - Policy command: `INSERT`
 - WITH CHECK expression: `auth.uid() = id`
@@ -94,6 +98,7 @@ O SQL não está criando a tabela `users` ou o cache não atualizou.
 4. Confirme que RLS está ENABLED (ícone de cadeado fechado)
 
 **Se a tabela existir mas ainda der erro:**
+
 - Aguarde 30-60 segundos (cache do Supabase)
 - Recarregue a página do app
 - Tente novamente

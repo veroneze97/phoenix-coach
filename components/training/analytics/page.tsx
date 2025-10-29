@@ -1,10 +1,10 @@
 'use client'
 
-import TrainingAnalytics from '@/components/training/TrainingAnalytics'
+import TrainingAnalytics from '@/components/training/analytics/TrainingAnalytics'
 
 export default function AnalyticsPage() {
   return (
-    <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <main className="mx-auto max-w-6xl space-y-8 px-4 py-8">
       <TrainingAnalytics />
     </main>
   )

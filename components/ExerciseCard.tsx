@@ -82,29 +82,32 @@ const ExerciseCard = memo(function ExerciseCard({
       exit={{ opacity: 0, y: -20 }}
       transition={{ delay: index * 0.05 }}
     >
-      <Card className="glass-card hover:shadow-lg transition-all">
+      <Card className="glass-card transition-all hover:shadow-lg">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
+                <GripVertical className="h-4 w-4 cursor-grab text-muted-foreground" />
                 <CardTitle className="text-base">{exercise.name}</CardTitle>
-                {isNewPR && (
-                  <Trophy className="w-4 h-4 text-phoenix-amber animate-pulse" />
-                )}
+                {isNewPR && <Trophy className="h-4 w-4 animate-pulse text-phoenix-amber" />}
               </div>
               <CardDescription className="text-xs text-muted-foreground">
-                {exercise.sets}x{exercise.reps} • {exercise.load_kg}kg • {formatRestTime(exercise.rest_s)}
+                {exercise.sets}x{exercise.reps} • {exercise.load_kg}kg •{' '}
+                {formatRestTime(exercise.rest_s)}
               </CardDescription>
             </div>
 
             <div className="flex items-center gap-1 sm:gap-2">
               <Button size="icon" variant="ghost" onClick={onDuplicate} title="Duplicar exercício">
-                <Copy className="w-4 h-4" />
+                <Copy className="h-4 w-4" />
               </Button>
 
               <Button size="icon" variant="ghost" onClick={onToggleExpand}>
-                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
               </Button>
 
               <Button
@@ -113,7 +116,7 @@ const ExerciseCard = memo(function ExerciseCard({
                 onClick={onRemove}
                 className="text-destructive hover:text-destructive"
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -131,8 +134,8 @@ const ExerciseCard = memo(function ExerciseCard({
                 {/* Quick Inputs */}
                 <div className="grid grid-cols-4 gap-2">
                   <div>
-                    <Label className="text-xs flex items-center gap-1">
-                      <Hash className="w-3 h-3" /> Séries
+                    <Label className="flex items-center gap-1 text-xs">
+                      <Hash className="h-3 w-3" /> Séries
                     </Label>
                     <Input
                       type="number"
@@ -142,8 +145,8 @@ const ExerciseCard = memo(function ExerciseCard({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs flex items-center gap-1">
-                      <Hash className="w-3 h-3" /> Reps
+                    <Label className="flex items-center gap-1 text-xs">
+                      <Hash className="h-3 w-3" /> Reps
                     </Label>
                     <Input
                       type="number"
@@ -153,8 +156,8 @@ const ExerciseCard = memo(function ExerciseCard({
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label className="text-xs flex items-center gap-1">
-                      <Weight className="w-3 h-3" /> Carga (kg)
+                    <Label className="flex items-center gap-1 text-xs">
+                      <Weight className="h-3 w-3" /> Carga (kg)
                     </Label>
                     <Input
                       type="number"
@@ -168,9 +171,9 @@ const ExerciseCard = memo(function ExerciseCard({
 
                 {/* Rest Timer */}
                 <div>
-                  <Label className="text-xs flex items-center justify-between">
+                  <Label className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1">
-                      <Timer className="w-3 h-3" /> Descanso
+                      <Timer className="h-3 w-3" /> Descanso
                     </span>
                     <span>{running ? `${timer}s restantes` : formatRestTime(exercise.rest_s)}</span>
                   </Label>
@@ -187,20 +190,22 @@ const ExerciseCard = memo(function ExerciseCard({
                       size="sm"
                       variant="outline"
                       onClick={toggleTimer}
-                      className="text-xs h-7 px-2"
+                      className="h-7 px-2 text-xs"
                     >
-                      {running ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                      {running ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                     </Button>
                   </div>
                 </div>
 
                 {/* RPE */}
                 <div>
-                  <Label className="text-xs flex items-center justify-between">
+                  <Label className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3" /> RPE (Esforço)
+                      <Zap className="h-3 w-3" /> RPE (Esforço)
                     </span>
-                    <span className={rpeInfo.color}>{exercise.rpe?.toFixed(1)} – {rpeInfo.text}</span>
+                    <span className={rpeInfo.color}>
+                      {exercise.rpe?.toFixed(1)} – {rpeInfo.text}
+                    </span>
                   </Label>
                   <Slider
                     value={[exercise.rpe || 7]}
@@ -214,8 +219,8 @@ const ExerciseCard = memo(function ExerciseCard({
 
                 {/* PR */}
                 {currentPR && (
-                  <div className="p-2 rounded-lg bg-secondary/50 text-xs flex items-center gap-2 text-muted-foreground">
-                    <Trophy className="w-3 h-3" />
+                  <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-2 text-xs text-muted-foreground">
+                    <Trophy className="h-3 w-3" />
                     <span>
                       PR atual: {currentPR.best_load}kg × {currentPR.best_reps} reps
                     </span>

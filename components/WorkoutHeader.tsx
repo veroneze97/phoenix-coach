@@ -29,7 +29,7 @@ export default function WorkoutHeader({
     day: 'numeric',
     month: 'long',
   })
-  const formattedDay = weekday.replace(/^\w/, c => c.toUpperCase())
+  const formattedDay = weekday.replace(/^\w/, (c) => c.toUpperCase())
 
   const progress = Math.min((completedDays / totalWeekDays) * 100, 100)
 
@@ -39,14 +39,14 @@ export default function WorkoutHeader({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <Card className="glass-card border-phoenix-amber/30 backdrop-blur-md shadow-md sticky top-0 z-40">
-        <CardHeader className="flex flex-col sm:flex-row items-center justify-between gap-3 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 w-full">
+      <Card className="glass-card sticky top-0 z-40 border-phoenix-amber/30 shadow-md backdrop-blur-md">
+        <CardHeader className="flex flex-col items-center justify-between gap-3 py-4 sm:flex-row">
+          <div className="flex w-full flex-col sm:flex-row sm:items-center sm:gap-4">
             <div className="flex items-center gap-2">
-              <Dumbbell className="w-6 h-6 text-phoenix-amber" />
+              <Dumbbell className="h-6 w-6 text-phoenix-amber" />
               <CardTitle className="text-lg sm:text-xl">{formattedDay}</CardTitle>
             </div>
-            <CardDescription className="text-muted-foreground text-sm">
+            <CardDescription className="text-sm text-muted-foreground">
               {exercisesCount} {exercisesCount === 1 ? 'exercício' : 'exercícios'} no treino de hoje
             </CardDescription>
           </div>
@@ -54,15 +54,15 @@ export default function WorkoutHeader({
           <Button
             onClick={onSave}
             disabled={saving || exercisesCount === 0}
-            className="bg-gradient-to-r from-phoenix-amber to-phoenix-gold text-white shadow-sm hover:opacity-90 transition-all"
+            className="bg-gradient-to-r from-phoenix-amber to-phoenix-gold text-white shadow-sm transition-all hover:opacity-90"
           >
-            <Save className="w-4 h-4 mr-2" />
+            <Save className="mr-2 h-4 w-4" />
             {saving ? 'Salvando...' : 'Salvar'}
           </Button>
         </CardHeader>
 
         <div className="px-6 pb-4">
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+          <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
             <span>Semana</span>
             <span>
               {completedDays}/{totalWeekDays} dias
@@ -73,12 +73,12 @@ export default function WorkoutHeader({
 
         {completedDays === totalWeekDays && (
           <motion.div
-            className="flex items-center justify-center gap-2 py-2 text-sm text-phoenix-amber font-medium"
+            className="flex items-center justify-center gap-2 py-2 text-sm font-medium text-phoenix-amber"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <Flame className="w-4 h-4 animate-pulse" />
+            <Flame className="h-4 w-4 animate-pulse" />
             Semana completa! Excelente consistência 🔥
           </motion.div>
         )}

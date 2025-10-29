@@ -2,13 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  Flame,
-  CheckCircle2,
-  XCircle,
-  ArrowLeft,
-  ArrowRight,
-} from 'lucide-react'
+import { Flame, CheckCircle2, XCircle, ArrowLeft, ArrowRight } from 'lucide-react'
 import { format, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useAuth } from '@/lib/auth-context'
@@ -91,7 +85,7 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
       toast.success(
         newStatus === 'done'
           ? '✅ Treino concluído com sucesso!'
-          : '❌ Treino marcado como perdido.'
+          : '❌ Treino marcado como perdido.',
       )
     } catch (err) {
       toast.error('Erro ao atualizar status do treino')
@@ -112,8 +106,8 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh] text-muted-foreground">
-        <Flame className="w-8 h-8 text-phoenix-amber animate-pulse" />
+      <div className="flex h-[60vh] items-center justify-center text-muted-foreground">
+        <Flame className="h-8 w-8 animate-pulse text-phoenix-amber" />
         <span className="ml-2 text-sm">Carregando treino...</span>
       </div>
     )
@@ -122,25 +116,23 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
   return (
     <div className="space-y-4 pb-28">
       {/* 📆 Navegação entre dias */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="mb-2 flex items-center justify-between">
         <Button
           variant="ghost"
           onClick={() => changeDay('prev')}
           className="flex items-center gap-1"
         >
-          <ArrowLeft className="w-4 h-4" /> Anterior
+          <ArrowLeft className="h-4 w-4" /> Anterior
         </Button>
 
-        <h2 className="text-lg font-semibold text-center capitalize">
-          {formattedDate}
-        </h2>
+        <h2 className="text-center text-lg font-semibold capitalize">{formattedDate}</h2>
 
         <Button
           variant="ghost"
           onClick={() => changeDay('next')}
           className="flex items-center gap-1"
         >
-          Próximo <ArrowRight className="w-4 h-4" />
+          Próximo <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
 
@@ -156,23 +148,19 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
 
       {/* 🏁 Status atual */}
       {workout && (
-        <Card className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-phoenix-amber/10 to-phoenix-gold/10 border border-phoenix-amber/30 rounded-xl">
+        <Card className="flex items-center justify-between rounded-xl border border-phoenix-amber/30 bg-gradient-to-r from-phoenix-amber/10 to-phoenix-gold/10 px-4 py-3">
           <div className="flex items-center gap-2 text-sm">
             {status === 'done' ? (
-              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
             ) : status === 'missed' ? (
-              <XCircle className="w-4 h-4 text-red-600" />
+              <XCircle className="h-4 w-4 text-red-600" />
             ) : (
-              <Flame className="w-4 h-4 text-phoenix-amber animate-pulse" />
+              <Flame className="h-4 w-4 animate-pulse text-phoenix-amber" />
             )}
             <span>
               Status atual:{' '}
               <strong className="capitalize">
-                {status === 'done'
-                  ? 'Concluído'
-                  : status === 'missed'
-                  ? 'Perdido'
-                  : 'Planejado'}
+                {status === 'done' ? 'Concluído' : status === 'missed' ? 'Perdido' : 'Planejado'}
               </strong>
             </span>
           </div>
@@ -183,7 +171,7 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
               variant="outline"
               onClick={() => handleStatus('done')}
               disabled={status === 'done'}
-              className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white transition-all"
+              className="border-green-600 text-green-600 transition-all hover:bg-green-600 hover:text-white"
             >
               ✅ Concluir
             </Button>
@@ -192,7 +180,7 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
               variant="outline"
               onClick={() => handleStatus('missed')}
               disabled={status === 'missed'}
-              className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition-all"
+              className="border-red-600 text-red-600 transition-all hover:bg-red-600 hover:text-white"
             >
               ❌ Perdido
             </Button>
@@ -233,9 +221,7 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
                   currentPR={prs[exercise.name]}
                   isExpanded={expandedExercise === exercise.id}
                   onToggleExpand={() =>
-                    setExpandedExercise(
-                      expandedExercise === exercise.id ? null : exercise.id
-                    )
+                    setExpandedExercise(expandedExercise === exercise.id ? null : exercise.id)
                   }
                   onUpdate={(updates) => updateExercise(exercise.id, updates)}
                   onRemove={() => removeExercise(exercise.id)}
@@ -249,13 +235,13 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
 
       {/* ➕ Botão para adicionar exercício */}
       {exercises.length > 0 && (
-        <Card className="glass-card border-dashed border-2 border-phoenix-amber/30 hover:bg-phoenix-amber/5 transition-all">
+        <Card className="glass-card border-2 border-dashed border-phoenix-amber/30 transition-all hover:bg-phoenix-amber/5">
           <Button
             variant="ghost"
-            className="w-full py-6 text-phoenix-amber flex items-center justify-center gap-2"
+            className="flex w-full items-center justify-center gap-2 py-6 text-phoenix-amber"
             onClick={() => setIsLibraryOpen(true)}
           >
-            <Flame className="w-4 h-4" />
+            <Flame className="h-4 w-4" />
             Adicionar novo exercício
           </Button>
         </Card>

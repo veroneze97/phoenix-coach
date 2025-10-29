@@ -94,49 +94,49 @@ export default function ProfileTab() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Card className="glass-card border-phoenix-amber/30 overflow-hidden relative">
+        <Card className="glass-card relative overflow-hidden border-phoenix-amber/30">
           {/* Background gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-phoenix-amber/5 via-transparent to-phoenix-gold/5" />
-          
-          <CardContent className="pt-6 relative z-10">
+
+          <CardContent className="relative z-10 pt-6">
             <div className="flex items-center gap-6">
               {/* Avatar */}
               <motion.div
                 className="relative"
                 whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 300 }}
+                transition={{ type: 'spring', stiffness: 300 }}
               >
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-phoenix-amber to-phoenix-gold flex items-center justify-center shadow-lg">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-phoenix-amber to-phoenix-gold shadow-lg">
                   <span className="text-4xl font-bold text-white">
                     {user.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <motion.div
-                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-br from-phoenix-amber to-phoenix-gold flex items-center justify-center shadow-md cursor-pointer"
+                  className="absolute -bottom-1 -right-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-phoenix-amber to-phoenix-gold shadow-md"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Edit className="w-4 h-4 text-white" />
+                  <Edit className="h-4 w-4 text-white" />
                 </motion.div>
               </motion.div>
 
               {/* User Info */}
               <div className="flex-1">
-                <h2 className="text-2xl font-bold mb-1">{user.name}</h2>
-                <p className="text-sm text-muted-foreground mb-3">{user.email}</p>
-                
+                <h2 className="mb-1 text-2xl font-bold">{user.name}</h2>
+                <p className="mb-3 text-sm text-muted-foreground">{user.email}</p>
+
                 {/* Quick Stats */}
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="w-4 h-4 text-phoenix-amber" />
+                    <Calendar className="h-4 w-4 text-phoenix-amber" />
                     <span className="text-muted-foreground">{user.age} anos</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Ruler className="w-4 h-4 text-phoenix-amber" />
+                    <Ruler className="h-4 w-4 text-phoenix-amber" />
                     <span className="text-muted-foreground">{user.height} cm</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Weight className="w-4 h-4 text-phoenix-amber" />
+                    <Weight className="h-4 w-4 text-phoenix-amber" />
                     <span className="text-muted-foreground">{user.weight} kg</span>
                   </div>
                 </div>
@@ -149,15 +149,15 @@ export default function ProfileTab() {
                   size="sm"
                   className="border-phoenix-amber/30 hover:bg-phoenix-amber/10"
                 >
-                  <Settings className="w-4 h-4 mr-2" />
+                  <Settings className="mr-2 h-4 w-4" />
                   Editar Perfil
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-red-500/30 hover:bg-red-500/10 text-red-500"
+                  className="border-red-500/30 text-red-500 hover:bg-red-500/10"
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
+                  <LogOut className="mr-2 h-4 w-4" />
                   Sair
                 </Button>
               </div>
@@ -175,7 +175,7 @@ export default function ProfileTab() {
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5 text-phoenix-amber" />
+              <User className="h-5 w-5 text-phoenix-amber" />
               Informações Pessoais
             </CardTitle>
             <CardDescription>
@@ -183,7 +183,7 @@ export default function ProfileTab() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Nome Completo</Label>
                 <Input
@@ -242,8 +242,8 @@ export default function ProfileTab() {
                       whileTap={{ scale: 0.95 }}
                     >
                       <Badge
-                        variant={isSelected ? "default" : "outline"}
-                        className={`px-3 py-2 cursor-pointer transition-colors ${
+                        variant={isSelected ? 'default' : 'outline'}
+                        className={`cursor-pointer px-3 py-2 transition-colors ${
                           isSelected
                             ? 'bg-gradient-to-r from-phoenix-amber to-phoenix-gold hover:opacity-90'
                             : 'hover:bg-secondary'
@@ -270,20 +270,18 @@ export default function ProfileTab() {
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-phoenix-amber" />
+              <Target className="h-5 w-5 text-phoenix-amber" />
               Metas Diárias
             </CardTitle>
-            <CardDescription>
-              Configure suas metas personalizadas
-            </CardDescription>
+            <CardDescription>Configure suas metas personalizadas</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
               {/* Calories Target */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 rounded-lg bg-orange-500/10">
-                    <Utensils className="w-5 h-5 text-orange-500" />
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="rounded-lg bg-orange-500/10 p-2">
+                    <Utensils className="h-5 w-5 text-orange-500" />
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Calorias</Label>
@@ -294,7 +292,7 @@ export default function ProfileTab() {
                   <Input
                     type="number"
                     value={targets.calories}
-                    className="bg-secondary/50 text-center text-2xl font-bold h-16"
+                    className="h-16 bg-secondary/50 text-center text-2xl font-bold"
                     readOnly
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
@@ -310,9 +308,9 @@ export default function ProfileTab() {
 
               {/* Steps Target */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <Footprints className="w-5 h-5 text-blue-500" />
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="rounded-lg bg-blue-500/10 p-2">
+                    <Footprints className="h-5 w-5 text-blue-500" />
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Passos</Label>
@@ -323,7 +321,7 @@ export default function ProfileTab() {
                   <Input
                     type="number"
                     value={targets.steps}
-                    className="bg-secondary/50 text-center text-2xl font-bold h-16"
+                    className="h-16 bg-secondary/50 text-center text-2xl font-bold"
                     readOnly
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
@@ -339,9 +337,9 @@ export default function ProfileTab() {
 
               {/* Sleep Target */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 rounded-lg bg-purple-500/10">
-                    <Moon className="w-5 h-5 text-purple-500" />
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="rounded-lg bg-purple-500/10 p-2">
+                    <Moon className="h-5 w-5 text-purple-500" />
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Sono</Label>
@@ -352,7 +350,7 @@ export default function ProfileTab() {
                   <Input
                     type="number"
                     value={targets.sleep}
-                    className="bg-secondary/50 text-center text-2xl font-bold h-16"
+                    className="h-16 bg-secondary/50 text-center text-2xl font-bold"
                     readOnly
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
@@ -369,10 +367,10 @@ export default function ProfileTab() {
 
             <div className="mt-6">
               <Button
-                className="w-full bg-gradient-to-r from-phoenix-amber to-phoenix-gold hover:opacity-90 transition-opacity"
+                className="w-full bg-gradient-to-r from-phoenix-amber to-phoenix-gold transition-opacity hover:opacity-90"
                 disabled
               >
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="mr-2 h-4 w-4" />
                 Salvar Metas
               </Button>
             </div>
@@ -389,15 +387,13 @@ export default function ProfileTab() {
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Link2 className="w-5 h-5 text-phoenix-amber" />
+              <Link2 className="h-5 w-5 text-phoenix-amber" />
               Integrações
             </CardTitle>
-            <CardDescription>
-              Conecte seus apps favoritos de saúde e fitness
-            </CardDescription>
+            <CardDescription>Conecte seus apps favoritos de saúde e fitness</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {INTEGRATIONS.map((integration, index) => (
                 <motion.div
                   key={integration.id}
@@ -406,35 +402,35 @@ export default function ProfileTab() {
                   transition={{ delay: 0.4 + index * 0.1 }}
                 >
                   <Card
-                    className={`glass-card ${integration.borderColor} border-2 hover:shadow-lg transition-all cursor-pointer`}
+                    className={`glass-card ${integration.borderColor} cursor-pointer border-2 transition-all hover:shadow-lg`}
                   >
                     <CardContent className="pt-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className={`p-3 rounded-lg ${integration.bgColor}`}>
+                      <div className="mb-4 flex items-start justify-between">
+                        <div className={`rounded-lg p-3 ${integration.bgColor}`}>
                           <span className="text-3xl">{integration.icon}</span>
                         </div>
                         {integration.connected ? (
-                          <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
-                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                          <Badge className="border-green-500/30 bg-green-500/20 text-green-500">
+                            <CheckCircle2 className="mr-1 h-3 w-3" />
                             Conectado
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="border-dashed">
-                            <Circle className="w-3 h-3 mr-1" />
+                            <Circle className="mr-1 h-3 w-3" />
                             Desconectado
                           </Badge>
                         )}
                       </div>
 
-                      <h3 className={`font-bold text-lg mb-1 ${integration.color}`}>
+                      <h3 className={`mb-1 text-lg font-bold ${integration.color}`}>
                         {integration.name}
                       </h3>
-                      <p className="text-sm text-muted-foreground mb-4">
+                      <p className="mb-4 text-sm text-muted-foreground">
                         {integration.description}
                       </p>
 
                       <Button
-                        variant={integration.connected ? "outline" : "default"}
+                        variant={integration.connected ? 'outline' : 'default'}
                         className={
                           integration.connected
                             ? 'w-full'
@@ -444,12 +440,12 @@ export default function ProfileTab() {
                       >
                         {integration.connected ? (
                           <>
-                            <Settings className="w-4 h-4 mr-2" />
+                            <Settings className="mr-2 h-4 w-4" />
                             Gerenciar
                           </>
                         ) : (
                           <>
-                            <ExternalLink className="w-4 h-4 mr-2" />
+                            <ExternalLink className="mr-2 h-4 w-4" />
                             Conectar
                           </>
                         )}
@@ -472,7 +468,7 @@ export default function ProfileTab() {
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5 text-phoenix-amber" />
+              <Settings className="h-5 w-5 text-phoenix-amber" />
               Configurações Adicionais
             </CardTitle>
           </CardHeader>
@@ -490,7 +486,10 @@ export default function ProfileTab() {
               <Button variant="ghost" className="w-full justify-start">
                 Idioma
               </Button>
-              <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-500 hover:bg-red-500/10">
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-red-500 hover:bg-red-500/10 hover:text-red-500"
+              >
                 Excluir Conta
               </Button>
             </div>
@@ -499,26 +498,20 @@ export default function ProfileTab() {
       </motion.div>
 
       {/* App Info */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.7 }}
-      >
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
         <Card className="glass-card border-dashed">
           <CardContent className="pt-6 text-center">
-            <p className="text-sm text-muted-foreground mb-2">
-              Phoenix Coach v1.0.0
-            </p>
+            <p className="mb-2 text-sm text-muted-foreground">Phoenix Coach v1.0.0</p>
             <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-              <a href="#" className="hover:text-phoenix-amber transition-colors">
+              <a href="#" className="transition-colors hover:text-phoenix-amber">
                 Termos de Uso
               </a>
               <span>•</span>
-              <a href="#" className="hover:text-phoenix-amber transition-colors">
+              <a href="#" className="transition-colors hover:text-phoenix-amber">
                 Política de Privacidade
               </a>
               <span>•</span>
-              <a href="#" className="hover:text-phoenix-amber transition-colors">
+              <a href="#" className="transition-colors hover:text-phoenix-amber">
                 Suporte
               </a>
             </div>

@@ -90,10 +90,7 @@ export function useWorkout(user: any, selectedDate: Date) {
   // 🏆 Carrega PRs
   const loadPRs = async () => {
     try {
-      const { data } = await supabase
-        .from('prs')
-        .select('*')
-        .eq('user_id', user.id)
+      const { data } = await supabase.from('prs').select('*').eq('user_id', user.id)
       if (data) {
         const prsMap: Record<string, any> = {}
         data.forEach((pr) => {
@@ -123,11 +120,7 @@ export function useWorkout(user: any, selectedDate: Date) {
         notes: '',
         is_custom: false,
       }
-      const { data, error } = await supabase
-        .from('exercises')
-        .insert(newExercise)
-        .select()
-        .single()
+      const { data, error } = await supabase.from('exercises').insert(newExercise).select().single()
       if (error) throw error
       setExercises([...exercises, data])
       toast.success(`${data.name} adicionado! 💪`)
@@ -153,11 +146,7 @@ export function useWorkout(user: any, selectedDate: Date) {
       const copy = { ...exercise }
       delete copy.id
       copy.order_index = exercises.length
-      const { data, error } = await supabase
-        .from('exercises')
-        .insert(copy)
-        .select()
-        .single()
+      const { data, error } = await supabase.from('exercises').insert(copy).select().single()
       if (error) throw error
       setExercises((prev) => [...prev, data])
       toast.success('Exercício duplicado ⚡')
@@ -169,9 +158,7 @@ export function useWorkout(user: any, selectedDate: Date) {
   // 💾 Atualiza exercício com debounce otimista
   const updateExercise = useCallback(
     async (id: number, updates: any) => {
-      setExercises((prev) =>
-        prev.map((ex) => (ex.id === id ? { ...ex, ...updates } : ex))
-      )
+      setExercises((prev) => prev.map((ex) => (ex.id === id ? { ...ex, ...updates } : ex)))
 
       // Debounce
       const existingTimer = debounceTimers.current.get(id)
@@ -200,7 +187,7 @@ export function useWorkout(user: any, selectedDate: Date) {
 
       debounceTimers.current.set(id, timer)
     },
-    [exercises, prs]
+    [exercises, prs],
   )
 
   // 🏅 Salva PR
@@ -217,7 +204,7 @@ export function useWorkout(user: any, selectedDate: Date) {
           date: workout.date,
           workout_id: workout.id,
         },
-        { onConflict: 'user_id,exercise_name' }
+        { onConflict: 'user_id,exercise_name' },
       )
       toast.success(`🔥 Novo PR em ${exercise.name}!`)
       loadPRs()
@@ -233,9 +220,7 @@ export function useWorkout(user: any, selectedDate: Date) {
     try {
       const validRPEs = exercises.filter((e) => e.rpe).map((e) => e.rpe)
       const avgRPE =
-        validRPEs.length > 0
-          ? validRPEs.reduce((a, b) => a + b, 0) / validRPEs.length
-          : null
+        validRPEs.length > 0 ? validRPEs.reduce((a, b) => a + b, 0) / validRPEs.length : null
       await supabase
         .from('workouts')
         .update({

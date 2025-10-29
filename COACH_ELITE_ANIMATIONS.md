@@ -1,9 +1,11 @@
 # Coach Tab - Phoenix Elite Animations (Score ≥ 90)
 
 ## Overview
+
 Added celebratory Phoenix animations when user achieves elite performance (Phoenix Score ≥ 90). All animations maintain Apple + Phoenix aesthetic with gold glow and glass effects.
 
 ## Elite Score Trigger
+
 ```javascript
 const isEliteScore = phoenixScore >= 90
 ```
@@ -11,6 +13,7 @@ const isEliteScore = phoenixScore >= 90
 ## Animations Implemented
 
 ### 1. **Phoenix Logo Fire Particles**
+
 ```javascript
 // 12 particles radiating outward in circular pattern
 - Spawn from center of Phoenix logo
@@ -21,11 +24,13 @@ const isEliteScore = phoenixScore >= 90
 ```
 
 **Visual Effect:**
+
 - Creates fire/explosion effect around Phoenix logo
 - Particles fade out as they move outward
 - Continuous loop maintains "alive" feeling
 
 ### 2. **Wing Glow Effect**
+
 ```javascript
 // Pulsing outer glow around logo
 - Blur effect (blur-xl) for soft halo
@@ -35,11 +40,13 @@ const isEliteScore = phoenixScore >= 90
 ```
 
 **Visual Effect:**
+
 - Creates "wings" appearance with expanding glow
 - Soft, ethereal gold aura
 - Syncs with fire particles for cohesive effect
 
 ### 3. **Rotating Ring**
+
 ```javascript
 // Spinning border around logo
 - 2px border with phoenix-gold/50 opacity
@@ -49,12 +56,15 @@ const isEliteScore = phoenixScore >= 90
 ```
 
 **Visual Effect:**
+
 - Orbital ring suggests movement and energy
 - Creates dynamic "power-up" appearance
 - Enhances depth perception
 
 ### 4. **Logo Shadow Enhancement**
+
 When `isEliteScore`:
+
 ```javascript
 boxShadow: [
   '0 0 30px rgba(255, 179, 0, 0.6)',
@@ -66,6 +76,7 @@ duration: 2s
 ```
 
 Normal state:
+
 ```javascript
 boxShadow: [
   '0 0 20px rgba(255, 179, 0, 0.3)',
@@ -76,6 +87,7 @@ duration: 3s
 ```
 
 ### 5. **Flame Icon Animation**
+
 ```javascript
 // Wiggle and scale effect
 rotate: [-5, 5, -5]
@@ -84,23 +96,27 @@ duration: 2s
 ```
 
 **Visual Effect:**
+
 - Flame appears "alive" and flickering
 - Subtle but noticeable movement
 - Reinforces fire theme
 
 ### 6. **Sparkles Icon Rotation**
+
 ```javascript
 // Coach Phoenix title sparkle
-rotate: [0, 360]  // 3s linear
-scale: [1, 1.2, 1]  // 2s ease
+rotate: [0, 360] // 3s linear
+scale: [1, 1.2, 1] // 2s ease
 ```
 
 **Visual Effect:**
+
 - Continuous slow rotation
 - Subtle pulse for attention
 - Premium "magical" feeling
 
 ### 7. **"Performance Elite!" Badge**
+
 ```javascript
 // Appears under title when elite
 initial={{ opacity: 0, y: -5 }}
@@ -111,6 +127,7 @@ className: text-phoenix-amber font-bold
 **Content:** "⭐ Performance Elite!"
 
 ### 8. **Score Ring Outer Glow**
+
 ```javascript
 // Expanding ring around score
 - 4px border with phoenix-amber/30
@@ -120,6 +137,7 @@ className: text-phoenix-amber font-bold
 ```
 
 **Additional Effect:**
+
 ```javascript
 // Blur glow layer
 - bg-phoenix-amber/20 with blur-2xl
@@ -128,12 +146,13 @@ className: text-phoenix-amber font-bold
 ```
 
 ### 9. **Score Number Pulse**
+
 ```javascript
 key={phoenixScore}  // Re-triggers on score change
 initial={{ scale: 0.5, opacity: 0 }}
-animate={{ 
+animate={{
   scale: isEliteScore ? [1, 1.15, 1] : 1,
-  opacity: 1 
+  opacity: 1
 }}
 transition: {
   scale: { duration: 1, repeat: Infinity, repeatDelay: 1.5 }
@@ -141,11 +160,13 @@ transition: {
 ```
 
 **Visual Effect:**
+
 - Smooth entrance animation on score update
 - Continuous pulse when elite
 - Draws attention to achievement
 
 ### 10. **"ELITE" Badge**
+
 ```javascript
 // Appears below score in ring
 initial={{ opacity: 0, y: 10 }}
@@ -157,6 +178,7 @@ text: "ELITE"
 ### 11. **Card Background Effects**
 
 **Animated Gradient Sweep:**
+
 ```javascript
 // Horizontal sweep across card
 bg-gradient-to-r from-transparent via-phoenix-amber/10 to-transparent
@@ -165,6 +187,7 @@ duration: 3s linear infinite
 ```
 
 **Floating Particles (20):**
+
 ```javascript
 // Random positions throughout card
 - 1x1px rounded dots
@@ -176,6 +199,7 @@ duration: 3s linear infinite
 ```
 
 **Pulsing Border Glow:**
+
 ```javascript
 // Card border animation
 - 2px border with animated color
@@ -187,6 +211,7 @@ duration: 3s linear infinite
 ### 12. **Score Message Card Enhancement**
 
 When `isEliteScore`:
+
 ```javascript
 // Enhanced background
 bg-gradient-to-r from-phoenix-amber/20 to-phoenix-gold/20
@@ -204,6 +229,7 @@ border-phoenix-amber/40
 ```
 
 Normal state:
+
 ```javascript
 bg-gradient-to-r from-phoenix-amber/10 to-phoenix-gold/10
 border-phoenix-amber/20
@@ -212,6 +238,7 @@ border-phoenix-amber/20
 ## Framer Motion Score Transitions
 
 ### Score Update Animation
+
 ```javascript
 <motion.span
   key={phoenixScore}  // Forces re-render on change
@@ -222,12 +249,14 @@ border-phoenix-amber/20
 ```
 
 **Behavior:**
+
 - Smooth scale-up from 50% → 100%
 - Fade in from 0 → 100% opacity
 - 500ms spring animation
 - Re-triggers whenever `phoenixScore` changes
 
 ### Previous Score Tracking
+
 ```javascript
 const [prevScore, setPrevScore] = useState(0)
 
@@ -239,6 +268,7 @@ useEffect(() => {
 ```
 
 **Purpose:**
+
 - Enables cross-fade transitions
 - Can be extended for score diff display
 - Prevents animation on initial load (0 score)
@@ -246,6 +276,7 @@ useEffect(() => {
 ## Color Palette
 
 All animations use consistent Phoenix colors:
+
 - **Primary Gold:** `#FFB300` (phoenix-amber)
 - **Secondary Gold:** `#D97706` (phoenix-gold)
 - **Glow Effects:** `rgba(255, 179, 0, 0.3-0.9)`
@@ -253,6 +284,7 @@ All animations use consistent Phoenix colors:
 ## Glass Effect Aesthetic
 
 Maintained throughout:
+
 - `backdrop-blur-md` on glass-card class
 - Subtle opacity layers (10%-40%)
 - Border overlays with low opacity
@@ -263,7 +295,6 @@ Maintained throughout:
 1. **GPU Acceleration:**
    - All animations use `transform` properties
    - Avoid layout thrashing (no width/height animations)
-   
 2. **Conditional Rendering:**
    - Elite animations only render when `isEliteScore === true`
    - Reduces DOM complexity for normal scores

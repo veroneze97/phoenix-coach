@@ -1,6 +1,7 @@
 # Coach Module - Supabase Integration
 
 ## Overview
+
 The Coach Tab connects to Supabase to compute the Phoenix Score and generate personalized weekly coaching messages based on user performance across all modules.
 
 ## Phoenix Score Formula
@@ -10,6 +11,7 @@ Phoenix Score = 0.4·CT + 0.3·AD + 0.2·Sleep + 0.1·Steps
 ```
 
 Where:
+
 - **CT** = Training Consistency (% of days with workouts in last 7 days)
 - **AD** = Diet Adherence (% of meals marked as adherent in last 7 days)
 - **Sleep** = Sleep Quality (average quality score 1-5 converted to %)
@@ -20,6 +22,7 @@ Where:
 ### Table: `coach_messages`
 
 **Columns:**
+
 - `id` (UUID): Primary key
 - `user_id` (UUID): Foreign key to auth.users
 - `week_ref` (TEXT): Week reference in format 'YYYY-WW' (e.g., '2025-W03')
@@ -30,11 +33,13 @@ Where:
 - `updated_at` (TIMESTAMPTZ): Last update timestamp
 
 **Constraints:**
+
 - UNIQUE constraint on (user_id, week_ref) - one message per week per user
 - CHECK constraint on tone (must be 'excellent', 'good', or 'low')
 - CHECK constraint on score (must be 0-100)
 
 **RLS Policies:**
+
 - Users can only view, create, update, and delete their own messages
 - Policy: `auth.uid() = user_id`
 
@@ -52,16 +57,19 @@ The Coach Tab fetches data from multiple tables:
 ### Tone Categories
 
 **Excellent (Score ≥ 80):**
+
 - Tone: 'excellent'
 - Message emphasizes exceptional consistency
 - Encourages maintaining current level
 
 **Good (Score ≥ 60):**
+
 - Tone: 'good'
 - Message acknowledges good progress
 - Encourages improvement in weak areas
 
 **Low (Score < 60):**
+
 - Tone: 'low'
 - Message provides encouragement
 - Focuses on recovery and reorganization
@@ -69,6 +77,7 @@ The Coach Tab fetches data from multiple tables:
 ### Auto-Generation
 
 Messages are generated:
+
 1. On demand via "Gerar Nova Mensagem Semanal" button
 2. Uses current Phoenix Score
 3. Stored with current week reference (YYYY-WW format)
@@ -79,6 +88,7 @@ Messages are generated:
 ### CoachTab.js
 
 **State Management:**
+
 - `phoenixScore`: Calculated score (0-100)
 - `metrics`: Object containing percentage and trend for each metric
 - `latestMessage`: Most recent coach message from database
@@ -106,21 +116,25 @@ Messages are generated:
 ## UI Components
 
 ### Top Banner
+
 - Phoenix logo with glow animation
 - Phoenix Score ring (0-100)
 - Score-based message with color coding
 
 ### Latest Message Card
+
 - Shows most recent weekly message
 - Color-coded border based on tone
 - Displays creation date
 
 ### Generate Message Button
+
 - Triggers new message generation
 - Shows loading state during generation
 - Full-width with gradient styling
 
 ### Metrics Grid (2x2)
+
 - Training Consistency card
 - Diet Adherence card
 - Sleep Quality card
@@ -128,11 +142,13 @@ Messages are generated:
 - Each shows: percentage, trend arrow, progress bar
 
 ### Recommendations Card
+
 - Personalized insights based on metrics
 - Dynamic tips for areas needing improvement
 - Highlights achievements
 
 ### Formula Card
+
 - Shows Phoenix Score calculation formula
 - Educational reference for users
 
@@ -148,6 +164,7 @@ Messages are generated:
 ### 2. Verify Dependencies
 
 Ensure these tables exist:
+
 - `workouts` (Training module)
 - `meal_logs` (Diet module)
 - `sleep_logs` (Sleep module)
@@ -164,6 +181,7 @@ Ensure these tables exist:
 ## Trend Calculation
 
 Trends are determined automatically:
+
 - **Up (↗)**: Percentage ≥ 70%
 - **Neutral (→)**: Percentage 40-69%
 - **Down (↘)**: Percentage < 40%

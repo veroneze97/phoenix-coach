@@ -5,12 +5,14 @@
 ## ✨ Features Implemented (MVP)
 
 ### 🔐 Authentication
+
 - ✅ Email/Password signup and login
 - ✅ Google OAuth integration
 - ✅ User profile management
 - 🔜 Apple Sign-In (prepared, not enabled yet)
 
 ### 📊 Core Features
+
 - ✅ **Phoenix Score**: Dynamic 0-100 score based on daily metrics
 - ✅ **Daily Tracking**:
   - 💧 Water intake (ml)
@@ -22,6 +24,7 @@
 - ✅ **Smart Coach**: Rule-based personalized insights and motivation
 
 ### 🎨 Design
+
 - ✅ Apple-inspired UI with Phoenix aesthetic
 - ✅ Amber/Gold color scheme (#FFB300 → #D97706)
 - ✅ Glassmorphism effects
@@ -31,6 +34,7 @@
 - ✅ Smooth animations with Framer Motion
 
 ### 📱 PWA Features
+
 - ✅ Mobile-first responsive design
 - ✅ Bottom tab navigation (6 tabs)
 - ✅ PWA manifest configured
@@ -38,6 +42,7 @@
 - ✅ Installable on mobile devices
 
 ### 🗄️ Database (Supabase)
+
 - ✅ Row Level Security (RLS) enabled
 - ✅ `users` table: Profile data (height, weight, goals)
 - ✅ `checks` table: Daily metrics with unique constraint
@@ -49,6 +54,7 @@
 **👉 Follow the complete setup guide: [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)**
 
 Quick summary:
+
 1. Create Supabase project at https://supabase.com
 2. Run the SQL schema (creates tables + RLS policies)
 3. Get your credentials (URL + anon key)
@@ -146,6 +152,7 @@ Once Supabase is configured, test these flows:
 ## 📝 Database Schema
 
 ### users table
+
 ```sql
 - id: UUID (FK to auth.users)
 - name: TEXT
@@ -157,6 +164,7 @@ Once Supabase is configured, test these flows:
 ```
 
 ### checks table
+
 ```sql
 - id: UUID (PK)
 - user_id: UUID (FK to users)
@@ -184,19 +192,23 @@ Once Supabase is configured, test these flows:
 ## 🐛 Troubleshooting
 
 ### "Can't connect to Supabase"
+
 - Check that you've updated `.env.local` with real credentials
 - Verify your Supabase project is active
 - Restart the Next.js server: `sudo supervisorctl restart nextjs`
 
 ### RLS Errors
+
 - Ensure you ran the complete SQL schema from SUPABASE_SETUP.md
 - Check that RLS policies are enabled in Supabase dashboard
 
 ### Google OAuth not working
+
 - Complete Google OAuth setup in Supabase (see SUPABASE_SETUP.md Step 4)
 - Verify redirect URI matches your Supabase URL
 
 ### PWA not installing
+
 - Make sure you're using HTTPS (or localhost)
 - Check manifest.json is accessible at `/manifest.json`
 - Replace placeholder icons with actual 192x192 and 512x512 PNG files
@@ -207,6 +219,6 @@ Private project for personal use.
 
 ---
 
-**Built with ❤️ and 🔥** 
+**Built with ❤️ and 🔥**
 
-*"Like the Phoenix, rise from the ashes, stronger every day"*
+_"Like the Phoenix, rise from the ashes, stronger every day"_

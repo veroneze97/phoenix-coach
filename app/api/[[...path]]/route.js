@@ -40,28 +40,25 @@ async function handleRoute(request, { params }) {
 
     // Root endpoint - GET /api/root (since /api/ is not accessible with catch-all)
     if (route === '/root' && method === 'GET') {
-      return handleCORS(NextResponse.json({ message: "Hello World" }))
+      return handleCORS(NextResponse.json({ message: 'Hello World' }))
     }
     // Root endpoint - GET /api/root (since /api/ is not accessible with catch-all)
     if (route === '/' && method === 'GET') {
-      return handleCORS(NextResponse.json({ message: "Hello World" }))
+      return handleCORS(NextResponse.json({ message: 'Hello World' }))
     }
 
     // Status endpoints - POST /api/status
     if (route === '/status' && method === 'POST') {
       const body = await request.json()
-      
+
       if (!body.client_name) {
-        return handleCORS(NextResponse.json(
-          { error: "client_name is required" }, 
-          { status: 400 }
-        ))
+        return handleCORS(NextResponse.json({ error: 'client_name is required' }, { status: 400 }))
       }
 
       const statusObj = {
         id: uuidv4(),
         client_name: body.client_name,
-        timestamp: new Date()
+        timestamp: new Date(),
       }
 
       await db.collection('status_checks').insertOne(statusObj)
@@ -70,29 +67,19 @@ async function handleRoute(request, { params }) {
 
     // Status endpoints - GET /api/status
     if (route === '/status' && method === 'GET') {
-      const statusChecks = await db.collection('status_checks')
-        .find({})
-        .limit(1000)
-        .toArray()
+      const statusChecks = await db.collection('status_checks').find({}).limit(1000).toArray()
 
       // Remove MongoDB's _id field from response
       const cleanedStatusChecks = statusChecks.map(({ _id, ...rest }) => rest)
-      
+
       return handleCORS(NextResponse.json(cleanedStatusChecks))
     }
 
     // Route not found
-    return handleCORS(NextResponse.json(
-      { error: `Route ${route} not found` }, 
-      { status: 404 }
-    ))
-
+    return handleCORS(NextResponse.json({ error: `Route ${route} not found` }, { status: 404 }))
   } catch (error) {
     console.error('API Error:', error)
-    return handleCORS(NextResponse.json(
-      { error: "Internal server error" }, 
-      { status: 500 }
-    ))
+    return handleCORS(NextResponse.json({ error: 'Internal server error' }, { status: 500 }))
   }
 }
 

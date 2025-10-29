@@ -22,24 +22,22 @@ export default function EmptyState({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="flex flex-col items-center justify-center text-center py-12 px-4 rounded-xl bg-gradient-to-b from-white to-phoenix-amber/5 border border-phoenix-amber/20 backdrop-blur-lg"
+      className="flex flex-col items-center justify-center rounded-xl border border-phoenix-amber/20 bg-gradient-to-b from-white to-phoenix-amber/5 px-4 py-12 text-center backdrop-blur-lg"
     >
       <motion.div
         animate={{ rotate: [0, -5, 5, 0], scale: [1, 1.05, 1] }}
         transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}
       >
-        <Flame className="w-12 h-12 text-phoenix-amber mb-4" />
+        <Flame className="mb-4 h-12 w-12 text-phoenix-amber" />
       </motion.div>
 
-      <h3 className="text-lg font-semibold text-gray-800">
-        Seu treino ainda está vazio 💪
-      </h3>
-      <p className="text-sm text-muted-foreground mt-2 max-w-md">
-        Comece escolhendo um template pronto ou monte seu treino do zero.
-        Dê o primeiro passo hoje — a consistência constrói resultados!
+      <h3 className="text-lg font-semibold text-gray-800">Seu treino ainda está vazio 💪</h3>
+      <p className="mt-2 max-w-md text-sm text-muted-foreground">
+        Comece escolhendo um template pronto ou monte seu treino do zero. Dê o primeiro passo hoje —
+        a consistência constrói resultados!
       </p>
 
-      <div className="flex flex-col sm:flex-row gap-3 mt-6">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
         {hasTemplates && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -51,9 +49,9 @@ export default function EmptyState({
                 key={key}
                 variant="outline"
                 onClick={() => onApplyTemplate?.(key)}
-                className="text-sm px-4 py-2 border-phoenix-amber/40 hover:bg-phoenix-amber/10 transition-all"
+                className="border-phoenix-amber/40 px-4 py-2 text-sm transition-all hover:bg-phoenix-amber/10"
               >
-                <Dumbbell className="w-4 h-4 mr-1" />
+                <Dumbbell className="mr-1 h-4 w-4" />
                 {template.name}
               </Button>
             ))}
@@ -62,9 +60,9 @@ export default function EmptyState({
 
         <Button
           onClick={onAddExercise}
-          className="bg-gradient-to-r from-phoenix-amber to-phoenix-gold text-white px-6 py-2 flex items-center gap-2 hover:opacity-90 shadow-md"
+          className="flex items-center gap-2 bg-gradient-to-r from-phoenix-amber to-phoenix-gold px-6 py-2 text-white shadow-md hover:opacity-90"
         >
-          <PlusCircle className="w-4 h-4" />
+          <PlusCircle className="h-4 w-4" />
           Adicionar Exercício
         </Button>
       </div>

@@ -135,12 +135,15 @@ LLM_API_KEY=YOUR-EMERGENT-KEY
 ## Troubleshooting
 
 **Problem**: Tables not created
+
 - **Solution**: Make sure you ran the SQL in Step 3 completely
 
 **Problem**: RLS errors when testing
+
 - **Solution**: Verify policies are created (check Policies tab in table view)
 
 **Problem**: Google OAuth not working
+
 - **Solution**: Double-check redirect URI matches exactly
 
 ---
