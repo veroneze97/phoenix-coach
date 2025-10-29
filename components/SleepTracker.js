@@ -21,7 +21,6 @@ import {
   AlertCircle,
   BedDouble,
   Loader2,
-  Save,
   Activity,
   Coffee,
 } from 'lucide-react'
@@ -44,7 +43,7 @@ export default function SleepTracker() {
   const [latency, setLatency] = useState(15)
 
   // Data state
-  const [weeklyData, setWeeklyData] = useState([])
+  const [weeklyData, setWeeklyData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -71,6 +70,7 @@ export default function SleepTracker() {
 
       setWeeklyData(data || [])
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Error loading weekly data:', error)
       toast.error('Erro ao carregar dados de sono')
     } finally {
@@ -113,6 +113,7 @@ export default function SleepTracker() {
       setWakeTime('')
       setSleepQuality(3)
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Error saving sleep log:', error)
       toast.error('Erro ao salvar registro de sono')
     } finally {
@@ -128,7 +129,7 @@ export default function SleepTracker() {
     const wakeUpDate = new Date()
     wakeUpDate.setHours(hours, minutes, 0, 0)
 
-    const recommendations = []
+    const recommendations: any[] = []
 
     // 6 cycles (optimal), 5 cycles (good), 4 cycles (minimum)
     const cycles = [
@@ -160,7 +161,7 @@ export default function SleepTracker() {
   }
 
   // Calculate activity cutoffs based on bedtime
-  const calculateCutoffs = (bedtimeStr) => {
+  const calculateCutoffs = (bedtimeStr: string) => {
     if (!bedtimeStr) return null
 
     const [hours, minutes] = bedtimeStr.split(':').map(Number)
@@ -224,7 +225,7 @@ export default function SleepTracker() {
   ]
 
   // Prepare chart data from weeklyData
-  const chartData = weeklyData.map((log, index) => {
+  const chartData = weeklyData.map((log) => {
     const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
     const date = new Date(log.date)
     const dayName = dayNames[date.getDay()]
@@ -254,7 +255,7 @@ export default function SleepTracker() {
     const consistency = (weeklyData.length / 7) * 100
 
     return {
-      avgHours: avgHours.toFixed(1),
+      avgHours: Number(avgHours.toFixed(1)),
       avgQuality: Math.round(avgQuality),
       consistency: Math.round(consistency),
     }
@@ -426,7 +427,7 @@ export default function SleepTracker() {
                   const [bedH, bedM] = bedTime.split(':').map(Number)
                   const [wakeH, wakeM] = wakeTime.split(':').map(Number)
 
-                  let bedMinutes = bedH * 60 + bedM
+                  const bedMinutes = bedH * 60 + bedM
                   let wakeMinutes = wakeH * 60 + wakeM
 
                   // Handle overnight sleep
@@ -494,10 +495,20 @@ export default function SleepTracker() {
           {/* Save Button */}
           <Button
             className="w-full rounded-lg bg-gradient-to-r from-purple-500 to-purple-700"
-            disabled={!bedTime || !wakeTime}
+            disabled={!bedTime || !wakeTime || saving}
+            onClick={saveSleepLog}
           >
-            <Moon className="mr-2 h-4 w-4" />
-            Salvar Registro
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Moon className="mr-2 h-4 w-4" />
+                Salvar Registro
+              </>
+            )}
           </Button>
         </CardContent>
       </Card>
