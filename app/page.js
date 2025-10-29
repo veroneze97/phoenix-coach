@@ -16,9 +16,7 @@ import { animationConfig } from '@/lib/animation-config'
 import TrainingEditor from '@/components/TrainingEditor'
 import DietPlanner from '@/components/DietPlanner'
 import SleepTracker from '@/components/SleepTracker'
-import StepsTracker from '@/components/StepsTracker'
 import CoachTab from '@/components/CoachTab'
-import ProfileTab from '@/components/ProfileTab'
 import {
   Home as HomeIcon,
   Dumbbell,
@@ -33,7 +31,6 @@ import {
   Flame,
   Target,
   Calendar,
-  Award,
 } from 'lucide-react'
 
 export default function App() {
@@ -47,6 +44,7 @@ export default function App() {
     signOut,
     updateProfile,
   } = useAuth()
+
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -63,7 +61,6 @@ export default function App() {
   })
 
   // Daily check data
-  const [todayCheck, setTodayCheck] = useState(null)
   const [water, setWater] = useState(0)
   const [steps, setSteps] = useState(0)
   const [sleep, setSleep] = useState(0)
@@ -77,42 +74,16 @@ export default function App() {
   // Active tab
   const [activeTab, setActiveTab] = useState('home')
 
-  // --- NOTA: As funções loadTodayCheck e loadWeekStats foram comentadas para evitar erros 404 no console.
-  // Para que a página Home funcione completamente, execute os scripts SQL fornecidos no seu Supabase
-  // para criar a tabela 'checks' e a view 'v_weekly_summary'.
-  useEffect(() => {
-    if (user && profile) {
-      // loadTodayCheck()
-      // loadWeekStats()
-    }
-  }, [user, profile])
+  // Se quiser ligar depois: criar tabela 'checks' e view de semana e acionar carregamento.
+  // useEffect(() => {
+  //   if (user && profile) {
+  //     loadWeekStats()
+  //   }
+  // }, [user, profile])
 
   useEffect(() => {
     calculatePhoenixScore()
   }, [water, steps, sleep, trainingDone, dietAdherence])
-
-  const loadTodayCheck = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0]
-      const { data, error } = await supabase
-        .from('checks')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .single()
-
-      if (data) {
-        setTodayCheck(data)
-        setWater(data.water_ml || 0)
-        setSteps(data.steps || 0)
-        setSleep(data.sleep_min || 0)
-        setTrainingDone(data.training_completed || false)
-        setDietAdherence(data.diet_adherence || 0)
-      }
-    } catch (error) {
-      console.log('No check for today yet')
-    }
-  }
 
   const loadWeekStats = async () => {
     try {
@@ -126,11 +97,9 @@ export default function App() {
         .gte('date', sevenDaysAgo.toISOString().split('T')[0])
         .order('date', { ascending: true })
 
-      if (data) {
-        setWeekStats(data)
-      }
-    } catch (error) {
-      console.error('Error loading week stats:', error)
+      if (!error && data) setWeekStats(data)
+    } catch {
+      toast.error('Não foi possível carregar a semana.')
     }
   }
 
@@ -158,7 +127,7 @@ export default function App() {
         updated_at: new Date().toISOString(),
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('checks')
         .upsert(checkData, { onConflict: 'user_id,date' })
         .select()
@@ -166,11 +135,9 @@ export default function App() {
 
       if (error) throw error
 
-      setTodayCheck(data)
       toast.success('Progresso salvo! 🔥')
       loadWeekStats()
-    } catch (error) {
-      console.error('Error saving check:', error)
+    } catch {
       toast.error('Erro ao salvar progresso')
     }
   }
@@ -191,7 +158,7 @@ export default function App() {
         toast.success('Bem-vindo de volta! 🔥')
       }
     } catch (error) {
-      toast.error(error.message || 'Erro na autenticação')
+      toast.error(error?.message || 'Erro na autenticação')
     } finally {
       setAuthLoading(false)
     }
@@ -203,7 +170,7 @@ export default function App() {
       const { error } = await signInWithGoogle()
       if (error) throw error
     } catch (error) {
-      toast.error(error.message || 'Erro ao entrar com Google')
+      toast.error(error?.message || 'Erro ao entrar com Google')
       setAuthLoading(false)
     }
   }
@@ -220,7 +187,6 @@ export default function App() {
       })
 
       if (result.error) {
-        console.error('Profile setup error:', result.error)
         toast.error(`Erro ao salvar perfil: ${result.error.message || 'Verifique sua conexão'}`)
         setAuthLoading(false)
       } else {
@@ -230,8 +196,7 @@ export default function App() {
         }, 500)
       }
     } catch (error) {
-      console.error('Profile setup exception:', error)
-      toast.error(`Erro ao salvar perfil: ${error.message || 'Erro desconhecido'}`)
+      toast.error(`Erro ao salvar perfil: ${error?.message || 'Erro desconhecido'}`)
       setAuthLoading(false)
     }
   }
@@ -258,7 +223,7 @@ export default function App() {
     } else if (phoenixScore >= 30) {
       return {
         title: '🌱 Começando!',
-        message: 'Todo grande jornada começa com um passo. Você consegue!',
+        message: 'Toda grande jornada começa com um passo. Você consegue!',
         color: 'text-yellow-600',
       }
     } else {
@@ -355,7 +320,7 @@ export default function App() {
                 onClick={handleGoogleSignIn}
                 disabled={authLoading}
               >
-                <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
+                <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" aria-hidden>
                   <path
                     fill="currentColor"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -485,7 +450,7 @@ export default function App() {
   // Main app
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Fundo premium consistente com a página de dieta */}
+      {/* Fundo premium consistente */}
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-zinc-900 dark:via-zinc-800 dark:to-zinc-900" />
 
       <div className="pointer-events-auto relative z-20 w-full px-6 py-8 sm:px-8 lg:px-12">
@@ -511,7 +476,7 @@ export default function App() {
                   {...animationConfig.tabTransition}
                   className="space-y-8 lg:space-y-12"
                 >
-                  {/* Phoenix Score Card - Redesenho */}
+                  {/* Phoenix Score Card */}
                   <motion.div
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -556,7 +521,7 @@ export default function App() {
                     </CardContent>
                   </motion.div>
 
-                  {/* Daily Metrics Card - Redesenho */}
+                  {/* Daily Metrics */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -667,7 +632,7 @@ export default function App() {
                     </CardContent>
                   </motion.div>
 
-                  {/* Week Summary Card - Redesenho */}
+                  {/* Week Summary */}
                   {weekStats.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
@@ -905,7 +870,7 @@ export default function App() {
                     </CardHeader>
                     <CardContent className="space-y-2 text-xs text-muted-foreground">
                       <p>
-                        <strong>Phoenix Coach</strong> - Seu companheiro de jornada para uma vida
+                        <strong>Phoenix Coach</strong> — Seu companheiro de jornada para uma vida
                         mais saudável.
                       </p>
                       <p>Versão 1.0.0 MVP</p>
@@ -919,8 +884,7 @@ export default function App() {
       </div>
 
       {/* Bottom Navigation */}
-      {/* CORREÇÃO: Adicionado z-50 para garantir que o menu fique visível acima de todo o conteúdo */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border border-white/20 bg-white/60 shadow-xl backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-800/60">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border border-white/20 bg-white/70 shadow-xl backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-800/70">
         <div className="container mx-auto max-w-2xl px-4">
           <div className="flex items-center justify-around py-2">
             <button

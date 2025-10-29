@@ -22,7 +22,7 @@ import type {
   DailyIntake,
   WeeklyPoint,
   SelectedFood,
-} from '@/components/diet/types'
+} from '@/types/diet'
 
 /* ------------------------------------ *
  * Helpers numéricos e de macros
@@ -293,10 +293,14 @@ export default function useDietData(userId?: UUID) {
         await fetchAllData()
       } catch (e: any) {
         toast.error(e?.message ? `Erro: ${e.message}` : 'Erro ao adicionar alimento.')
-        // rollback
-        setMealItems(mealItems)
-        setMealTotals(mealTotals)
-        setDailyIntake(dailyIntake)
+        // rollback com snapshots
+        setMealItems((() => mealItems)() as any)
+        setMealItems((prev) => prev) // força flush no React 18 (no-op seguro)
+        // aplicar snapshots reais
+        setMealItems(mealItems) // compatibilidade: manter estado igual antes de aplicar sItems
+        setMealItems(sItems)     // <- aplica snapshot correto
+        setMealTotals(sTotals)
+        setDailyIntake(sDaily)
       }
     },
     [userId, mealItems, mealTotals, dailyIntake, fetchAllData],
@@ -404,9 +408,10 @@ export default function useDietData(userId?: UUID) {
         await fetchAllData()
       } catch (e: any) {
         toast.error(e?.message ? `Erro: ${e.message}` : 'Erro ao atualizar alimento.')
-        setMealItems(mealItems)
-        setMealTotals(mealTotals)
-        setDailyIntake(dailyIntake)
+        // rollback com snapshots
+        setMealItems(sItems)
+        setMealTotals(sTotals)
+        setDailyIntake(sDaily)
       }
     },
     [userId, mealItems, mealTotals, dailyIntake, fetchAllData],
@@ -435,11 +440,12 @@ export default function useDietData(userId?: UUID) {
         }
         const delta = computeDeltaFromFood(pseudoFood, grams)
 
-        // otimista
+        // snapshots
         const sItems = [...mealItems]
         const sTotals = [...mealTotals]
         const sDaily = dailyIntake ? { ...dailyIntake } : null
 
+        // otimista
         setMealItems((prev) => prev.filter((i) => i.id !== itemId))
         setMealTotals((prev) =>
           applyMealDelta(prev, target.meal_type, {
@@ -466,10 +472,10 @@ export default function useDietData(userId?: UUID) {
         await fetchAllData()
       } catch (e: any) {
         toast.error(e?.message ? `Erro: ${e.message}` : 'Erro ao remover alimento.')
-        // rollback
-        setMealItems(mealItems)
-        setMealTotals(mealTotals)
-        setDailyIntake(dailyIntake)
+        // rollback com snapshots
+        setMealItems(sItems)
+        setMealTotals(sTotals)
+        setDailyIntake(sDaily)
       }
     },
     [userId, mealItems, mealTotals, dailyIntake, fetchAllData],

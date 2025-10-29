@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
 // ✅ tipos centralizados
-import type { UUID, MealType, MealItem, SelectedFood, MealConfig } from '@/components/diet/types'
+import type { UUID, MealType, MealItem, SelectedFood, MealConfig } from '@/types/diet'
 // ✅ tokens centralizados
 import { TOKENS, cardBase } from '@/components/diet/tokens'
 
@@ -32,6 +32,16 @@ interface FoodModalProps {
   meals: MealConfig[]
 }
 
+type FoodRow = {
+  id: UUID
+  name: string
+  grams_per_unit?: number | null
+  kcal_per_100g?: number | null
+  carbs_g_per_100g?: number | null
+  protein_g_per_100g?: number | null
+  fat_g_per_100g?: number | null
+}
+
 const FoodModal = memo(function FoodModal({
   open,
   onOpenChange,
@@ -42,7 +52,7 @@ const FoodModal = memo(function FoodModal({
 }: FoodModalProps) {
   const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast')
   const [foodSearch, setFoodSearch] = useState('')
-  const [foodResults, setFoodResults] = useState<any[]>([])
+  const [foodResults, setFoodResults] = useState<FoodRow[]>([])
   const [selectedFood, setSelectedFood] = useState<SelectedFood | null>(null)
   const [quantity, setQuantity] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
@@ -71,7 +81,7 @@ const FoodModal = memo(function FoodModal({
 
   useEffect(() => {
     const timeout = setTimeout(async () => {
-      if (foodSearch.length < 2) {
+      if (foodSearch.trim().length < 2) {
         setFoodResults([])
         return
       }
@@ -82,31 +92,46 @@ const FoodModal = memo(function FoodModal({
         )
         .ilike('name', `%${foodSearch}%`)
         .limit(10)
+
       if (error) {
         toast.error('Erro ao buscar alimentos.')
         return
       }
-      setFoodResults(data || [])
+      setFoodResults((data || []) as FoodRow[])
     }, 300)
+
     return () => clearTimeout(timeout)
   }, [foodSearch])
 
   const handleSave = async () => {
     const qty = parseFloat(quantity)
-    if (!selectedFood) return toast.error('Selecione um alimento da lista.')
-    if (!quantity || isNaN(qty) || qty <= 0)
-      return toast.error('Informe uma quantidade válida (> 0).')
+    if (!selectedFood) {
+      toast.error('Selecione um alimento da lista.')
+      return
+    }
+    if (!quantity || isNaN(qty) || qty <= 0) {
+      toast.error('Informe uma quantidade válida (> 0).')
+      return
+    }
 
     setIsSaving(true)
-    const payload = { selectedMealType, selectedFood, quantity: qty }
-    if (itemToEdit) await onUpdateFood(itemToEdit.id, payload)
-    else await onAddFood(payload)
-    setIsSaving(false)
-    onOpenChange(false)
+    try {
+      const payload = { selectedMealType, selectedFood, quantity: qty }
+      if (itemToEdit) {
+        await onUpdateFood(itemToEdit.id, payload)
+      } else {
+        await onAddFood(payload)
+      }
+      onOpenChange(false)
+    } catch (e) {
+      toast.error('Não foi possível salvar. Tente novamente.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => !isSaving && onOpenChange(v)}>
       <DialogContent className={`sm:max-w-lg ${cardBase} p-6`}>
         <DialogHeader className="mb-2">
           <DialogTitle className="text-2xl font-semibold tracking-tight">
@@ -142,11 +167,27 @@ const FoodModal = memo(function FoodModal({
           <div>
             <Label className="text-sm font-semibold">Buscar alimento</Label>
             <div className="relative mt-2">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-60" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-60" aria-hidden />
               <Input
                 placeholder="Ex: Frango, Arroz..."
                 value={foodSearch}
                 onChange={(e) => setFoodSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && foodResults[0]) {
+                    const f = foodResults[0]
+                    setSelectedFood({
+                      id: f.id,
+                      name: f.name,
+                      grams_per_unit: f.grams_per_unit ?? 100,
+                      kcal_per_100g: f.kcal_per_100g ?? 0,
+                      carbs_g_per_100g: f.carbs_g_per_100g ?? 0,
+                      protein_g_per_100g: f.protein_g_per_100g ?? 0,
+                      fat_g_per_100g: f.fat_g_per_100g ?? 0,
+                    })
+                    setFoodSearch(f.name)
+                    setFoodResults([])
+                  }
+                }}
                 className="h-11 rounded-xl pl-10"
               />
               {foodResults.length > 0 && (
@@ -212,6 +253,7 @@ const FoodModal = memo(function FoodModal({
             variant="outline"
             onClick={() => onOpenChange(false)}
             className="h-11 flex-1 rounded-xl"
+            disabled={isSaving}
           >
             Cancelar
           </Button>

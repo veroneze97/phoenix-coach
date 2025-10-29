@@ -60,3 +60,22 @@ export type SelectedFood = {
   protein_g_per_100g?: number;
   fat_g_per_100g?: number;
 };
+
+// -----------------------------
+// ✅ Constantes exportadas para a UI
+// -----------------------------
+
+/**
+ * Ordem oficial de refeições usada pelo app neste schema (4 blocos).
+ * Se no futuro você expandir para 6 (morning/afternoon snacks + supper),
+ * basta ajustar o tipo MealType e esta constante.
+ */
+export const MEALS = ['breakfast', 'lunch', 'dinner', 'snacks'] as const;
+
+/** Mapa de rótulos humanizados para exibição */
+export const MEAL_LABELS: Record<(typeof MEALS)[number], string> = {
+  breakfast: 'Café da manhã',
+  lunch: 'Almoço',
+  dinner: 'Jantar',
+  snacks: 'Lanches',
+};

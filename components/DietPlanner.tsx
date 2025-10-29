@@ -28,11 +28,49 @@ import DonutProgress from '@/components/diet/DonutProgress'
 import PhoenixOracle from '@/components/PhoenixOracle.js'
 
 // Ícones
-import { Calendar, Plus, RefreshCw, Sparkles } from 'lucide-react'
+import { Calendar, Plus, RefreshCw, Sparkles, Egg, Utensils, Moon, Cookie } from 'lucide-react'
 
-// Tipos + catálogo de refeições
-import type { MealType, MealItem, SelectedFood, UUID } from '@/types/diet'
-import { MEALS } from '@/types/diet'
+// Tipos
+import type { MealType, MealItem, SelectedFood, UUID, MealConfig } from '@/types/diet'
+
+/* ------------------------------------ *
+ * Helpers de apresentação das refeições
+ * ------------------------------------ */
+
+/** Ordem oficial das seções de refeição na UI */
+const MEALS_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks']
+
+/** Metadados visuais por refeição (inclui ícone para o MealCard) */
+const MEAL_CONFIGS: Record<MealType, MealConfig> = {
+  breakfast: {
+    id: 'breakfast',
+    name: 'Café da manhã',
+    icon: Egg,
+    emoji: '🍳',
+    gradient: 'from-amber-400 to-orange-500',
+  },
+  lunch: {
+    id: 'lunch',
+    name: 'Almoço',
+    icon: Utensils,
+    emoji: '🍽️',
+    gradient: 'from-emerald-400 to-green-600',
+  },
+  dinner: {
+    id: 'dinner',
+    name: 'Jantar',
+    icon: Moon,
+    emoji: '🌙',
+    gradient: 'from-indigo-400 to-purple-600',
+  },
+  snacks: {
+    id: 'snacks',
+    name: 'Lanches',
+    icon: Cookie,
+    emoji: '🥪',
+    gradient: 'from-pink-400 to-rose-600',
+  },
+}
 
 /* ------------------------------------ *
  * Utilitários simples
@@ -179,7 +217,7 @@ export default function DietPlanner() {
               </Card>
 
               {/* Análise semanal */}
-              {weeklySummary.length > 0 && (
+              {Array.isArray(weeklySummary) && weeklySummary.length > 0 ? (
                 <Card className={`${cardBase} p-8 lg:p-12`}>
                   <h3 className="mb-6 flex items-center gap-3 text-2xl font-semibold text-foreground">
                     <Calendar className="h-6 w-6 text-orange-500" /> Análise Semanal
@@ -207,7 +245,7 @@ export default function DietPlanner() {
                     </ResponsiveContainer>
                   </div>
                 </Card>
-              )}
+              ) : null}
             </div>
 
             {/* Coluna direita */}
@@ -226,21 +264,22 @@ export default function DietPlanner() {
                   </Button>
                 </div>
                 <div className="space-y-4">
-                  {MEALS.map((meal) => {
+                  {MEALS_ORDER.map((mealId) => {
                     const data = Array.isArray(mealTotals)
-                      ? mealTotals.find((m) => m.meal_type === meal.id)
+                      ? mealTotals.find((m) => m.meal_type === mealId)
                       : null
                     const items = Array.isArray(mealItems)
-                      ? mealItems.filter((i) => i.meal_type === meal.id)
+                      ? mealItems.filter((i) => i.meal_type === mealId)
                       : []
+                    const mealCfg = MEAL_CONFIGS[mealId]
                     return (
                       <MealCard
-                        key={meal.id}
-                        meal={meal}
+                        key={mealId}
+                        meal={mealCfg}
                         data={data || null}
                         items={items}
-                        isExpanded={expandedMeals.has(meal.id)}
-                        onToggle={() => toggleMeal(meal.id)}
+                        isExpanded={expandedMeals.has(mealId)}
+                        onToggle={() => toggleMeal(mealId)}
                         onEditItem={handleEditClick}
                         onDeleteItem={handleDeleteClick}
                       />
@@ -289,7 +328,7 @@ export default function DietPlanner() {
         onAddFood={(payload) => handleAddFood(payload)}
         onUpdateFood={(id, payload) => handleUpdateFood(id, payload)}
         itemToEdit={itemToEdit}
-        meals={MEALS}
+        meals={Object.values(MEAL_CONFIGS)} // passa configs completas para o modal
       />
     </div>
   )

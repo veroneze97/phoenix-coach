@@ -7,14 +7,7 @@ import { Card } from '@/components/ui/card'
 import { ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react'
 
 // 🔎 Tipos centrais do módulo de dieta
-// (ajuste o caminho caso seu arquivo de tipos esteja diferente)
-import type {
-  UUID,
-  MealType,
-  MealTotal,
-  MealItem,
-  MealConfig,
-} from '@/types/diet'
+import type { UUID, MealType, MealTotal, MealItem, MealConfig } from '@/types/diet'
 
 /** Tokens visuais locais (devem casar com os usados na página) */
 const TOKENS = {
@@ -69,8 +62,13 @@ const MealCard = memo(function MealCard({
               className={`rounded-full bg-gradient-to-br p-3 ${meal.gradient} shadow-md`}
               aria-hidden
             >
-              <Icon className="h-6 w-6 text-white" />
+              {Icon ? (
+                <Icon className="h-6 w-6 text-white" />
+              ) : (
+                <span className="text-lg text-white">{meal.emoji}</span>
+              )}
             </span>
+
             <div>
               <h3 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
                 <span aria-hidden>{meal.emoji}</span> {meal.name}

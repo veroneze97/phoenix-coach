@@ -4,25 +4,23 @@ import { memo } from 'react'
 
 /**
  * SkeletonBlock
- * — Componente reutilizável para placeholders de carregamento.
- * — Mantém consistência visual entre telas (usa tokens base da Phoenix UI).
+ * — Placeholder de carregamento reutilizável.
+ * — Visual consistente com Phoenix UI (raios e cores).
+ * — Acessível: marcado como decorativo (aria-hidden).
  */
 
 interface SkeletonBlockProps {
   className?: string
+  /** Desativa a animação de pulso quando false */
   animate?: boolean
 }
 
 const TOKENS = {
   radius: 'rounded-2xl',
+  // fundo levemente translúcido, com bom contraste em dark mode
   light: 'bg-zinc-200/70 dark:bg-zinc-800/70',
-}
+} as const
 
-/**
- * Exemplo de uso:
- * <SkeletonBlock className="h-6 w-1/2" />
- * <SkeletonBlock className="h-48 w-full" animate={false} />
- */
 const SkeletonBlock = memo(function SkeletonBlock({
   className = '',
   animate = true,
