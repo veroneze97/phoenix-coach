@@ -130,7 +130,9 @@ module.exports = withPWA({
   generateEtags: true,
   swcMinify: true,
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    removeConsole: {
+      exclude: ['error', 'warn']
+    }
   },
   experimental: {
     optimizeCss: true,
