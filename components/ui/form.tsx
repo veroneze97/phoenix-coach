@@ -1,24 +1,25 @@
 'use client'
 
 import * as React from 'react'
+import * as LabelPrimitive from '@radix-ui/react-label'
 import { Slot } from '@radix-ui/react-slot'
 import {
   Controller,
+  ControllerProps,
+  FieldPath,
+  FieldValues,
   FormProvider,
   useFormContext,
-  type ControllerProps,
-  type FieldPath,
-  type FieldValues,
 } from 'react-hook-form'
 
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 
-// --- Tipagem dos Contexts ---
+const Form = FormProvider
 
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 > = {
   name: TName
 }
@@ -27,43 +28,20 @@ const FormFieldContext = React.createContext<FormFieldContextValue>(
   {} as FormFieldContextValue,
 )
 
-type FormItemContextValue = {
-  id: string
-}
-
-const FormItemContext = React.createContext<FormItemContextValue>(
-  {} as FormItemContextValue,
-)
-
-// --- Componentes ---
-
-const Form = FormProvider
-
-// O componente FormField é genérico para manter a segurança de tipos entre o nome do campo e os valores do formulário.
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 >({
   ...props
 }: ControllerProps<TFieldValues, TName>) => {
   return (
     <FormFieldContext.Provider value={{ name: props.name }}>
       <Controller {...props} />
-    </FormFieldContext.Provider.Provider>
+    </FormFieldContext.Provider>
   )
 }
 
-// Tipamos o retorno do hook useFormField para um uso mais fácil.
-interface UseFormFieldReturn {
-  id: string
-  name: FieldPath<FieldValues>
-  formItemId: string
-  formDescriptionId: string
-  formMessageId: string
-  error?: { message?: string }
-}
-
-const useFormField = (): UseFormFieldReturn => {
+const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
   const { getFieldState, formState } = useFormContext()
@@ -86,6 +64,14 @@ const useFormField = (): UseFormFieldReturn => {
   }
 }
 
+type FormItemContextValue = {
+  id: string
+}
+
+const FormItemContext = React.createContext<FormItemContextValue>(
+  {} as FormItemContextValue,
+)
+
 const FormItem = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -101,8 +87,8 @@ const FormItem = React.forwardRef<
 FormItem.displayName = 'FormItem'
 
 const FormLabel = React.forwardRef<
-  React.ElementRef<typeof Label>,
-  React.ComponentPropsWithoutRef<typeof Label>
+  React.ElementRef<typeof LabelPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
 >(({ className, ...props }, ref) => {
   const { error, formItemId } = useFormField()
 
@@ -129,7 +115,7 @@ const FormControl = React.forwardRef<
       id={formItemId}
       aria-describedby={
         !error
-          ? formDescriptionId
+          ? `${formDescriptionId}`
           : `${formDescriptionId} ${formMessageId}`
       }
       aria-invalid={!!error}
@@ -161,7 +147,7 @@ const FormMessage = React.forwardRef<
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
   const { error, formMessageId } = useFormField()
-  const body = error ? String(error?.message ?? '') : children
+  const body = error ? String(error?.message) : children
 
   if (!body) {
     return null

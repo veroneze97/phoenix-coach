@@ -10,13 +10,13 @@ import { cn } from '@/lib/utils'
 
 // Usamos React.ComponentPropsWithoutRef para obter todas as props do componente primitivo do Radix
 // e as estendemos, adicionando tipagem para `className` se necessário.
-interface MenubarMenuProps extends React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Menu> {}
+type MenubarMenuProps = React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Menu>
 
 function MenubarMenu({ ...props }: MenubarMenuProps) {
   return <MenubarPrimitive.Menu {...props} />
 }
 
-interface MenubarGroupProps extends React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Group> {}
+type MenubarGroupProps = React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Group>
 
 function MenubarGroup({ ...props }: MenubarGroupProps) {
   return <MenubarPrimitive.Group {...props} />

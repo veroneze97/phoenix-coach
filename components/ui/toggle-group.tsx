@@ -11,7 +11,7 @@ import { toggleVariants } from '@/components/ui/toggle'
 
 // Criamos uma interface para o valor do nosso contexto.
 // Usamos `Required<VariantProps<...>>` para garantir que `size` e `variant` sempre estejam presentes no objeto do contexto.
-interface ToggleGroupContextType extends Required<VariantProps<typeof toggleVariants>> {}
+type ToggleGroupContextType = Required<VariantProps<typeof toggleVariants>>
 
 const ToggleGroupContext = React.createContext<ToggleGroupContextType>({
   size: 'default',

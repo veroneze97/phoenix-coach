@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils'
 
 // Criamos uma interface para as props do componente.
 // Ela estende todas as props de um elemento <div> HTML padrão, como `id`, `data-testid`, etc.
-interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {}
+type SkeletonProps = React.HTMLAttributes<HTMLDivElement>
 
 function Skeleton({ className, ...props }: SkeletonProps) {
   return (
