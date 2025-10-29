@@ -16,6 +16,7 @@ import StreaksBadge from '@/components/StreaksBadge'
 import ExerciseHistoryCard from '@/components/ExerciseHistoryCard'
 import WeeklyProgressCard from '@/components/WeeklyProgressCard'
 import ExerciseSelector from '@/components/ExerciseSelector'
+
 import WorkoutHeader from './WorkoutHeader'
 import ExerciseCard from './ExerciseCard'
 import ExerciseLibraryDialog from './ExerciseLibraryDialog'
@@ -25,13 +26,13 @@ import { WORKOUT_TEMPLATES } from '@/lib/workout-helpers'
 import { WorkoutStatus } from '@/components/WorkoutStatus'
 import WeekOverview from '@/components/WeekOverview'
 
-// === Utilitário de data ===
+// ===== Utilitário de data =====
 function todayISO(date: Date = new Date()) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
   return local.toISOString().slice(0, 10)
 }
 
-// === Framer Motion variants ===
+// ===== Framer Motion variants =====
 const EASE = cubicBezier(0.16, 1, 0.3, 1)
 const fadeIn: Variants = {
   hidden: { opacity: 0 },
@@ -42,12 +43,9 @@ const slideUp: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.24, ease: EASE } },
 }
 
-type Status = 'planned' | 'done' | 'missed'
-
 export default function TrainingEditor({ selectedDate: initialDate = new Date() }) {
   const { user } = useAuth()
   const [selectedDate, setSelectedDate] = useState<Date>(initialDate)
-
   const {
     loading,
     saving,
@@ -65,33 +63,32 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
 
   const [expandedExercise, setExpandedExercise] = useState<number | null>(null)
   const [isLibraryOpen, setIsLibraryOpen] = useState(false)
-  const [status, setStatus] = useState<Status>('planned')
+  const [status, setStatus] = useState<'planned' | 'done' | 'missed'>('planned')
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | undefined>(undefined)
 
-  // Seleciona automaticamente o primeiro exercício do dia
+  // seleciona automaticamente o primeiro exercício do dia
   useEffect(() => {
-    if (!selectedExerciseId && exercises.length > 0 && exercises[0]?.id != null) {
+    if (!selectedExerciseId && exercises.length > 0 && exercises[0]?.id) {
       setSelectedExerciseId(String(exercises[0].id))
     }
   }, [exercises, selectedExerciseId])
 
-  // Atualiza status local quando o treino muda
+  // atualiza status local quando o treino muda
   useEffect(() => {
-    if (workout?.status) setStatus(workout.status as Status)
+    if (workout?.status) setStatus(workout.status)
     else setStatus('planned')
   }, [workout])
 
-  // Recarrega treino ao mudar a data
+  // recarrega treino ao mudar a data
   useEffect(() => {
     if (user) loadWorkout()
   }, [selectedDate, user, loadWorkout])
 
-  // === Aplicar template ===
+  // ===== Aplicar template =====
   const handleApplyTemplate = async (templateKey: string) => {
     if (!workout) return
     if (exercises.length > 0) {
-      alert('Remova os exercícios atuais antes de aplicar um template.')
-      return
+      return alert('Remova os exercícios atuais antes de aplicar um template.')
     }
 
     const template = WORKOUT_TEMPLATES[templateKey]
@@ -99,7 +96,7 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
 
     for (const ex of firstDay.exercises) {
       await addExerciseToWorkout({
-        id: crypto.randomUUID(),
+        id: Math.random(),
         name: ex.name,
         name_pt: ex.name,
         sets: ex.sets,
@@ -113,38 +110,38 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
     toast.success('Template aplicado ao dia selecionado.')
   }
 
-  // === Atualizar status ===
-  const handleStatus = async (newStatus: Extract<Status, 'done' | 'missed'>) => {
-    if (!user) return
-    try {
-      const dateStr =
-        typeof workout?.date === 'string' ? workout.date : todayISO(selectedDate)
+ // ===== Atualizar status (sem RPC, direto no Supabase) =====
+const handleStatus = async (newStatus: 'done' | 'missed') => {
+  if (!user) return
+  try {
+    const dateStr =
+      typeof workout?.date === 'string' ? workout.date : todayISO(selectedDate)
 
-      const { error } = await supabase
-        .from('workout_day_status')
-        .upsert(
-          {
-            user_id: user.id,
-            training_date: dateStr,
-            status: newStatus,
-          },
-          { onConflict: 'user_id,training_date' }
-        )
-
-      if (error) throw error
-      setStatus(newStatus)
-      toast.success(
-        newStatus === 'done'
-          ? '✅ Treino concluído com sucesso!'
-          : '❌ Treino marcado como perdido.'
+    const { error } = await supabase
+      .from('workout_day_status')
+      .upsert(
+        {
+          user_id: user.id,
+          training_date: dateStr,
+          status: newStatus,
+        },
+        { onConflict: 'user_id,training_date' }
       )
-    } catch (err) {
-      console.error('[StatusError]', err)
-      toast.error('Erro ao atualizar status')
-    }
-  }
 
-  // Navegação entre dias
+    if (error) throw error
+    setStatus(newStatus)
+    toast.success(
+      newStatus === 'done'
+        ? '✅ Treino concluído com sucesso!'
+        : '❌ Treino marcado como perdido.'
+    )
+  } catch (err) {
+    console.error('[StatusError]', err)
+    toast.error('Erro ao atualizar status')
+  }
+}
+
+  // ===== Navegação entre dias =====
   const changeDay = (direction: 'prev' | 'next') => {
     setStatus('planned')
     setSelectedDate((prev) => addDays(prev, direction === 'prev' ? -1 : 1))
@@ -162,19 +159,9 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
   }
 
   return (
-    <motion.div
-      className="space-y-6 pb-28 sm:space-y-8 lg:space-y-10"
-      variants={fadeIn}
-      initial="hidden"
-      animate="show"
-    >
+    <motion.div className="space-y-4 pb-28" variants={fadeIn} initial="hidden" animate="show">
       {/* Navegação entre dias */}
-      <motion.div
-        className="mb-2 flex items-center justify-between"
-        variants={slideUp}
-        initial="hidden"
-        animate="show"
-      >
+      <motion.div className="mb-2 flex items-center justify-between" variants={slideUp} initial="hidden" animate="show">
         <Button variant="ghost" onClick={() => changeDay('prev')} className="flex items-center gap-1">
           <ArrowLeft className="h-4 w-4" /> Anterior
         </Button>
@@ -189,19 +176,25 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
       </motion.div>
 
       {/* Cabeçalho */}
-      <WorkoutHeader
-        selectedDate={selectedDate}
-        exercisesCount={exercises.length}
-        totalWeekDays={5}
-        completedDays={3}
-        onSave={saveWorkout}
-        saving={saving}
-      />
+      <motion.div variants={slideUp} initial="hidden" animate="show">
+        <WorkoutHeader
+          selectedDate={selectedDate}
+          exercisesCount={exercises.length}
+          totalWeekDays={5}
+          completedDays={3}
+          onSave={saveWorkout}
+          saving={saving}
+        />
+      </motion.div>
 
       {/* Progresso semanal */}
-      {user && <WeekOverview userId={user.id || ''} anchorDate={selectedDate} />}
+      {user && (
+        <motion.div variants={slideUp} initial="hidden" animate="show">
+          <WeekOverview userId={user.id || ''} anchorDate={selectedDate} />
+        </motion.div>
+      )}
 
-      {/* Seção de progresso e histórico */}
+      {/* Cards de histórico e progresso */}
       {user && exercises.length > 0 && (
         <motion.div variants={slideUp} initial="hidden" animate="show" className="flex flex-col gap-3">
           <ExerciseSelector exercises={exercises} value={selectedExerciseId} onChange={setSelectedExerciseId} />
@@ -215,52 +208,55 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
         </motion.div>
       )}
 
-      {/* Phoenix Score + streaks */}
+      {/* Phoenix Score e Streaks */}
       {user && <PhoenixScoreCard userId={user.id || ''} date={selectedDate} />}
       {user && <StreaksBadge userId={user.id || ''} anchorDate={selectedDate} />}
 
       {/* Status atual */}
       {workout && (
-        <Card className="flex items-center justify-between rounded-2xl border border-phoenix-amber/30 bg-zinc-900/50 px-4 py-3 backdrop-blur-md shadow-[0_0_20px_rgba(255,160,0,0.05)]">
-          <div className="flex items-center gap-2 text-sm">
-            {status === 'done' ? (
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-            ) : status === 'missed' ? (
-              <XCircle className="h-4 w-4 text-red-500" />
-            ) : (
-              <Flame className="h-4 w-4 animate-pulse text-phoenix-amber" />
-            )}
-            <span>
-              Status atual:{' '}
-              <strong className="capitalize">
-                {status === 'done' ? 'Concluído' : status === 'missed' ? 'Perdido' : 'Planejado'}
-              </strong>
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleStatus('done')}
-              disabled={status === 'done'}
-              className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
-            >
-              ✅ Concluir
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleStatus('missed')}
-              disabled={status === 'missed'}
-              className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
-            >
-              ❌ Perdido
-            </Button>
-          </div>
-        </Card>
+        <motion.div variants={slideUp} initial="hidden" animate="show" whileHover={{ scale: 1.005 }}>
+          <Card className="flex items-center justify-between rounded-xl border border-phoenix-amber/30 bg-gradient-to-r from-phoenix-amber/10 to-phoenix-gold/10 px-4 py-3">
+            <div className="flex items-center gap-2 text-sm">
+              {status === 'done' ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              ) : status === 'missed' ? (
+                <XCircle className="h-4 w-4 text-red-600" />
+              ) : (
+                <Flame className="h-4 w-4 animate-pulse text-phoenix-amber" />
+              )}
+              <span>
+                Status atual:{' '}
+                <strong className="capitalize">
+                  {status === 'done' ? 'Concluído' : status === 'missed' ? 'Perdido' : 'Planejado'}
+                </strong>
+              </span>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleStatus('done')}
+                disabled={status === 'done'}
+                className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+              >
+                ✅ Concluir
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleStatus('missed')}
+                disabled={status === 'missed'}
+                className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+              >
+                ❌ Perdido
+              </Button>
+            </div>
+          </Card>
+        </motion.div>
       )}
 
-      {/* Lista de exercícios */}
+      {/* Conteúdo: lista de exercícios */}
       <AnimatePresence mode="wait">
         {exercises.length === 0 ? (
           <motion.div key="empty" variants={fadeIn} initial="hidden" animate="show" exit={{ opacity: 0 }}>
@@ -272,40 +268,36 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
             />
           </motion.div>
         ) : (
-          <motion.div
-            key="exercises"
-            variants={fadeIn}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2"
-          >
-            {exercises.map((exercise, index) => (
-              <motion.div
-                key={exercise.id}
-                variants={slideUp}
-                initial="hidden"
-                animate="show"
-                exit={{ opacity: 0, y: -6 }}
-              >
-                <ExerciseCard
-                  exercise={exercise}
-                  index={index}
-                  currentPR={prs[exercise.name]}
-                  isExpanded={expandedExercise === exercise.id}
-                  onToggleExpand={() =>
-                    setExpandedExercise(expandedExercise === exercise.id ? null : exercise.id)
-                  }
-                  onUpdate={(updates) => updateExercise(exercise.id, updates)}
-                  onRemove={() => removeExercise(exercise.id)}
-                  onDuplicate={() => duplicateExercise(exercise)}
-                />
-              </motion.div>
-            ))}
+          <motion.div key="exercises" variants={fadeIn} initial="hidden" animate="show" className="space-y-3">
+            <AnimatePresence>
+              {exercises.map((exercise, index) => (
+                <motion.div
+                  key={exercise.id}
+                  variants={slideUp}
+                  initial="hidden"
+                  animate="show"
+                  exit={{ opacity: 0, y: -6 }}
+                >
+                  <ExerciseCard
+                    exercise={exercise}
+                    index={index}
+                    currentPR={prs[exercise.name]}
+                    isExpanded={expandedExercise === exercise.id}
+                    onToggleExpand={() =>
+                      setExpandedExercise(expandedExercise === exercise.id ? null : exercise.id)
+                    }
+                    onUpdate={(updates) => updateExercise(exercise.id, updates)}
+                    onRemove={() => removeExercise(exercise.id)}
+                    onDuplicate={() => duplicateExercise(exercise)}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Adicionar exercício */}
+      {/* Botão adicionar exercício */}
       {user && (
         <motion.div variants={slideUp} initial="hidden" animate="show">
           <Card className="glass-card border-2 border-dashed border-phoenix-amber/30 hover:bg-phoenix-amber/5">
@@ -322,7 +314,11 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
       )}
 
       {/* Status secundário */}
-      {workout && <WorkoutStatus workoutId={workout.id} initialStatus={workout.status} />}
+      {workout && (
+        <motion.div variants={slideUp} initial="hidden" animate="show">
+          <WorkoutStatus workoutId={workout.id} initialStatus={workout.status} />
+        </motion.div>
+      )}
 
       {/* Modal biblioteca */}
       <ExerciseLibraryDialog

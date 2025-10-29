@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, useEffect, useCallback } from 'react'
+import { memo, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -48,6 +48,7 @@ const ExerciseCard = memo(function ExerciseCard({
   const rpeInfo = getRPEDescription(exercise.rpe || 7)
   const isNewPR = currentPR && isPR(exercise.load_kg, exercise.reps, currentPR)
 
+  // Timer de descanso
   const [timer, setTimer] = useState<number | null>(null)
   const [running, setRunning] = useState(false)
 
@@ -61,22 +62,26 @@ const ExerciseCard = memo(function ExerciseCard({
     setRunning(true)
   }, [running, exercise.rest_s])
 
-  useEffect(() => {
-    if (!running || timer === null) return
-    const interval = setInterval(() => {
-      setTimer((prev) => {
-        if (prev && prev > 0) return prev - 1
-        clearInterval(interval)
+  // Contagem regressiva
+  if (running && timer !== null) {
+    setTimeout(() => {
+      if (timer > 0) setTimer(timer - 1)
+      else {
         setRunning(false)
+        setTimer(null)
         toast.success('⏱️ Descanso finalizado! Próxima série!')
-        return null
-      })
+      }
     }, 1000)
-    return () => clearInterval(interval)
-  }, [running, timer])
+  }
 
   return (
-    <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ delay: index * 0.05 }}>
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ delay: index * 0.05 }}
+    >
       <Card className="glass-card transition-all hover:shadow-lg">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
@@ -87,17 +92,30 @@ const ExerciseCard = memo(function ExerciseCard({
                 {isNewPR && <Trophy className="h-4 w-4 animate-pulse text-phoenix-amber" />}
               </div>
               <CardDescription className="text-xs text-muted-foreground">
-                {exercise.sets}x{exercise.reps} • {exercise.load_kg}kg • {formatRestTime(exercise.rest_s)}
+                {exercise.sets}x{exercise.reps} • {exercise.load_kg}kg •{' '}
+                {formatRestTime(exercise.rest_s)}
               </CardDescription>
             </div>
+
             <div className="flex items-center gap-1 sm:gap-2">
               <Button size="icon" variant="ghost" onClick={onDuplicate} title="Duplicar exercício">
                 <Copy className="h-4 w-4" />
               </Button>
+
               <Button size="icon" variant="ghost" onClick={onToggleExpand}>
-                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
               </Button>
-              <Button size="icon" variant="ghost" onClick={onRemove} className="text-destructive hover:text-destructive">
+
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onRemove}
+                className="text-destructive hover:text-destructive"
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -106,29 +124,52 @@ const ExerciseCard = memo(function ExerciseCard({
 
         <AnimatePresence>
           {isExpanded && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }}>
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <CardContent className="space-y-4 pt-0">
+                {/* Quick Inputs */}
                 <div className="grid grid-cols-4 gap-2">
                   <div>
                     <Label className="flex items-center gap-1 text-xs">
                       <Hash className="h-3 w-3" /> Séries
                     </Label>
-                    <Input type="number" value={exercise.sets} onChange={(e) => onUpdate({ sets: parseInt(e.target.value) || 0 })} className="h-8 text-sm" />
+                    <Input
+                      type="number"
+                      value={exercise.sets}
+                      onChange={(e) => onUpdate({ sets: parseInt(e.target.value) || 0 })}
+                      className="h-8 text-sm"
+                    />
                   </div>
                   <div>
                     <Label className="flex items-center gap-1 text-xs">
                       <Hash className="h-3 w-3" /> Reps
                     </Label>
-                    <Input type="number" value={exercise.reps} onChange={(e) => onUpdate({ reps: parseInt(e.target.value) || 0 })} className="h-8 text-sm" />
+                    <Input
+                      type="number"
+                      value={exercise.reps}
+                      onChange={(e) => onUpdate({ reps: parseInt(e.target.value) || 0 })}
+                      className="h-8 text-sm"
+                    />
                   </div>
                   <div className="col-span-2">
                     <Label className="flex items-center gap-1 text-xs">
                       <Weight className="h-3 w-3" /> Carga (kg)
                     </Label>
-                    <Input type="number" step="0.5" value={exercise.load_kg} onChange={(e) => onUpdate({ load_kg: parseFloat(e.target.value) || 0 })} className="h-8 text-sm" />
+                    <Input
+                      type="number"
+                      step="0.5"
+                      value={exercise.load_kg}
+                      onChange={(e) => onUpdate({ load_kg: parseFloat(e.target.value) || 0 })}
+                      className="h-8 text-sm"
+                    />
                   </div>
                 </div>
 
+                {/* Rest Timer */}
                 <div>
                   <Label className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1">
@@ -137,13 +178,26 @@ const ExerciseCard = memo(function ExerciseCard({
                     <span>{running ? `${timer}s restantes` : formatRestTime(exercise.rest_s)}</span>
                   </Label>
                   <div className="flex items-center gap-2 py-2">
-                    <Slider value={[exercise.rest_s]} onValueChange={([v]) => onUpdate({ rest_s: v })} min={15} max={300} step={15} className="flex-1" />
-                    <Button size="sm" variant="outline" onClick={toggleTimer} className="h-7 px-2 text-xs">
+                    <Slider
+                      value={[exercise.rest_s]}
+                      onValueChange={([v]) => onUpdate({ rest_s: v })}
+                      min={15}
+                      max={300}
+                      step={15}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={toggleTimer}
+                      className="h-7 px-2 text-xs"
+                    >
                       {running ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                     </Button>
                   </div>
                 </div>
 
+                {/* RPE */}
                 <div>
                   <Label className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1">
@@ -153,9 +207,17 @@ const ExerciseCard = memo(function ExerciseCard({
                       {exercise.rpe?.toFixed(1)} – {rpeInfo.text}
                     </span>
                   </Label>
-                  <Slider value={[exercise.rpe || 7]} onValueChange={([v]) => onUpdate({ rpe: v })} min={1} max={10} step={0.5} className="py-3" />
+                  <Slider
+                    value={[exercise.rpe || 7]}
+                    onValueChange={([v]) => onUpdate({ rpe: v })}
+                    min={1}
+                    max={10}
+                    step={0.5}
+                    className="py-3"
+                  />
                 </div>
 
+                {/* PR */}
                 {currentPR && (
                   <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-2 text-xs text-muted-foreground">
                     <Trophy className="h-3 w-3" />
@@ -165,9 +227,15 @@ const ExerciseCard = memo(function ExerciseCard({
                   </div>
                 )}
 
+                {/* Notas */}
                 <div>
                   <Label className="text-xs">Notas</Label>
-                  <Input placeholder="Observações sobre este exercício..." value={exercise.notes || ''} onChange={(e) => onUpdate({ notes: e.target.value })} className="text-sm" />
+                  <Input
+                    placeholder="Observações sobre este exercício..."
+                    value={exercise.notes || ''}
+                    onChange={(e) => onUpdate({ notes: e.target.value })}
+                    className="text-sm"
+                  />
                 </div>
               </CardContent>
             </motion.div>
