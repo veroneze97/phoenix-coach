@@ -188,8 +188,9 @@ export default function DietPlanner() {
                 </p>
               </div>
               <button
-                ßonClick={() => setIsFoodModalOpen(true)}
-                className={`${TOKENS.gradientAction} text-white ${TOKENS.radius.lg} ${TOKENS.shadow.deep} transition-all hover:shadow-2xl px-5 py-3 text-base font-medium`}>
+                onClick={() => setIsFoodModalOpen(true)}
+                className={`${TOKENS.gradientAction} text-white ${TOKENS.radius.lg} ${TOKENS.shadow.deep} transition-all hover:shadow-2xl px-5 py-3 text-base font-medium`}
+              >
                 <span className="inline-flex items-center">
                   <Plus className="mr-2 h-5 w-5" />
                   Adicionar alimento
@@ -252,9 +253,7 @@ export default function DietPlanner() {
                     </ResponsiveContainer>
                   </div>
                 </Card>
-              ) : (
-                null
-              )}
+              ) : null}
             </div>
 
             {/* Coluna direita */}
