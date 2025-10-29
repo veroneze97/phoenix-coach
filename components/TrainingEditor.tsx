@@ -110,7 +110,7 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
     toast.success('Template aplicado ao dia selecionado.')
   }
 
- // ===== Atualizar status (sem RPC, com upsert direto) =====
+ // ===== Atualizar status (sem RPC, direto no Supabase) =====
 const handleStatus = async (newStatus: 'done' | 'missed') => {
   if (!user) return
   try {
@@ -120,21 +120,26 @@ const handleStatus = async (newStatus: 'done' | 'missed') => {
     const { error } = await supabase
       .from('workout_day_status')
       .upsert(
-        { user_id: user.id, training_date: dateStr, status: newStatus },
+        {
+          user_id: user.id,
+          training_date: dateStr,
+          status: newStatus,
+        },
         { onConflict: 'user_id,training_date' }
       )
 
     if (error) throw error
     setStatus(newStatus)
-    toast.success(newStatus === 'done'
-      ? '✅ Treino concluído com sucesso!'
-      : '❌ Treino marcado como perdido.')
+    toast.success(
+      newStatus === 'done'
+        ? '✅ Treino concluído com sucesso!'
+        : '❌ Treino marcado como perdido.'
+    )
   } catch (err) {
-    console.error(err)
+    console.error('[StatusError]', err)
     toast.error('Erro ao atualizar status')
   }
 }
-
 
   // ===== Navegação entre dias =====
   const changeDay = (direction: 'prev' | 'next') => {
