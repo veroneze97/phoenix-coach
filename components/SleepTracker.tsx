@@ -18,7 +18,6 @@ import {
   Calendar,
   Zap,
   Star,
-  AlertCircle,
   BedDouble,
   Loader2,
   Activity,
@@ -32,10 +31,7 @@ const FALL_ASLEEP_DEFAULT = 15
 export default function SleepTracker() {
   const { user } = useAuth()
 
-  // 🔒 Protege toda a árvore: se não houver usuário, nada é renderizado (e evita acessar user.id)
-  if (!user) return null
-
-  // Sleep Calculator state
+  // Sleep Calculator state (sempre declarar hooks no topo, sem condicionais)
   const [wakeUpTime, setWakeUpTime] = useState('07:00')
   const [fallAsleepTime, setFallAsleepTime] = useState(FALL_ASLEEP_DEFAULT)
 
@@ -51,11 +47,17 @@ export default function SleepTracker() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    loadWeeklyData()
+    // Se não houver usuário logado, não tenta carregar
+    if (!user?.id) {
+      setWeeklyData([])
+      setLoading(false)
+      return
+    }
+    loadWeeklyData(user.id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id]) // com o guard acima, user sempre existe aqui
+  }, [user?.id])
 
-  const loadWeeklyData = async () => {
+  const loadWeeklyData = async (uid: string) => {
     setLoading(true)
     try {
       const sevenDaysAgo = new Date()
@@ -64,7 +66,7 @@ export default function SleepTracker() {
       const { data, error } = await supabase
         .from('sleep_logs')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', uid)
         .gte('date', sevenDaysAgo.toISOString().split('T')[0])
         .order('date', { ascending: true })
 
@@ -86,7 +88,6 @@ export default function SleepTracker() {
       return
     }
 
-    // proteção adicional (defensivo)
     if (!user?.id) {
       toast.error('Sessão não encontrada. Faça login.')
       return
@@ -114,7 +115,7 @@ export default function SleepTracker() {
       if (error) throw error
 
       toast.success('Sono registrado com sucesso! 🌙')
-      await loadWeeklyData()
+      await loadWeeklyData(user.id)
 
       // Reset form
       setBedTime('')
@@ -139,7 +140,7 @@ export default function SleepTracker() {
 
     const recommendations: any[] = []
 
-    // 6 cycles (optimal), 5 cycles (good), 4 cycles (minimum)
+    // 6 cycles (ideal), 5 (bom), 4 (mínimo)
     const cycles = [
       { count: 6, label: 'Ideal', description: '9h de sono', emoji: '🌟' },
       { count: 5, label: 'Bom', description: '7h30 de sono', emoji: '💪' },
@@ -168,59 +169,9 @@ export default function SleepTracker() {
     return recommendations
   }
 
-  // Calculate activity cutoffs based on bedtime
-  const calculateCutoffs = (bedtimeStr: string) => {
-    if (!bedtimeStr) return null
-
-    const [hours, minutes] = bedtimeStr.split(':').map(Number)
-    const bedtime = new Date()
-    bedtime.setHours(hours, minutes, 0, 0)
-
-    const cutoffs = [
-      {
-        name: 'HIIT / Treino Intenso',
-        icon: Activity,
-        color: 'text-red-500',
-        hoursBefore: 4,
-        description: 'Exercícios intensos elevam cortisol e temperatura',
-      },
-      {
-        name: 'Cafeína',
-        icon: Coffee,
-        color: 'text-orange-500',
-        hoursBefore: 6,
-        description: 'Meia-vida da cafeína é 5-6 horas',
-      },
-      {
-        name: 'Refeição Pesada',
-        icon: Sparkles,
-        color: 'text-yellow-500',
-        hoursBefore: 3,
-        description: 'Digestão pode atrapalhar o sono',
-      },
-      {
-        name: 'Telas (Luz Azul)',
-        icon: Sun,
-        color: 'text-blue-500',
-        hoursBefore: 1,
-        description: 'Suprime produção de melatonina',
-      },
-    ]
-
-    return cutoffs.map((cutoff) => {
-      const cutoffTime = new Date(bedtime.getTime() - cutoff.hoursBefore * 60 * 60000)
-      const cutoffHours = cutoffTime.getHours().toString().padStart(2, '0')
-      const cutoffMinutes = cutoffTime.getMinutes().toString().padStart(2, '0')
-
-      return {
-        ...cutoff,
-        time: `${cutoffHours}:${cutoffMinutes}`,
-      }
-    })
-  }
+  // (Opcional) calcular cutoffs a partir do primeiro recomendado — removido para evitar var não usada
 
   const recommendations = calculateBedtimes()
-  const cutoffs = recommendations.length > 0 ? calculateCutoffs(recommendations[0].bedtime) : null
 
   // Quality stars
   const qualityLabels = ['Péssimo', 'Ruim', 'Regular', 'Bom', 'Excelente']
@@ -245,7 +196,7 @@ export default function SleepTracker() {
     }
   })
 
-  // Calculate weekly stats
+  // Weekly stats
   const calculateWeeklyStats = () => {
     if (weeklyData.length === 0) {
       return {
@@ -275,6 +226,15 @@ export default function SleepTracker() {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+      </div>
+    )
+  }
+
+  // Se não estiver logado, não quebra hooks — apenas renderiza um placeholder
+  if (!user) {
+    return (
+      <div className="rounded-lg border border-dashed bg-muted/50 p-6 text-center text-sm text-muted-foreground">
+        Faça login para visualizar e registrar seu sono.
       </div>
     )
   }
@@ -373,14 +333,7 @@ export default function SleepTracker() {
 
           {/* Info */}
           <div className="flex items-start gap-3 rounded-lg border border-blue-500/20 bg-blue-500/10 p-4">
-            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" />
-            <div className="text-sm">
-              <p className="mb-1 font-medium">Como funciona?</p>
-              <p className="text-muted-foreground">
-                Um ciclo de sono completo dura 90 minutos. Acordar entre ciclos (não no meio) ajuda
-                você a se sentir mais descansado. Recomendamos 5-6 ciclos (7h30-9h) para adultos.
-              </p>
-            </div>
+            <AlertContent />
           </div>
         </CardContent>
       </Card>
@@ -438,10 +391,8 @@ export default function SleepTracker() {
                   const bedMinutes = bedH * 60 + bedM
                   let wakeMinutes = wakeH * 60 + wakeM
 
-                  // Handle overnight sleep
-                  if (wakeMinutes <= bedMinutes) {
-                    wakeMinutes += 24 * 60
-                  }
+                  // Overnight
+                  if (wakeMinutes <= bedMinutes) wakeMinutes += 24 * 60
 
                   const diff = wakeMinutes - bedMinutes
                   const hours = Math.floor(diff / 60)
@@ -460,7 +411,7 @@ export default function SleepTracker() {
               Qualidade do Sono
             </Label>
 
-            {/* Quality value display */}
+            {/* Visual das estrelas */}
             <div className="rounded-lg bg-secondary/50 p-3 text-center">
               <div className="mb-2 flex items-center justify-center gap-2">
                 {[1, 2, 3, 4, 5].map((value) => (
@@ -480,7 +431,6 @@ export default function SleepTracker() {
               </p>
             </div>
 
-            {/* Quality slider */}
             <Slider
               value={[sleepQuality]}
               onValueChange={(v) => setSleepQuality(v[0])}
@@ -490,7 +440,6 @@ export default function SleepTracker() {
               className="py-4"
             />
 
-            {/* Quality descriptions */}
             <div className="grid grid-cols-5 gap-1 text-center text-xs text-muted-foreground">
               <div>Péssimo</div>
               <div>Ruim</div>
@@ -646,40 +595,48 @@ export default function SleepTracker() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="flex items-start gap-3 rounded-lg bg-secondary/30 p-3">
-              <Moon className="mt-0.5 h-5 w-5 flex-shrink-0 text-purple-500" />
-              <div className="text-sm">
-                <p className="mb-1 font-medium">Ambiente Escuro</p>
-                <p className="text-muted-foreground">Use cortinas blackout ou máscara de dormir</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 rounded-lg bg-secondary/30 p-3">
-              <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" />
-              <div className="text-sm">
-                <p className="mb-1 font-medium">Rotina Consistente</p>
-                <p className="text-muted-foreground">Durma e acorde no mesmo horário</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 rounded-lg bg-secondary/30 p-3">
-              <Zap className="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-500" />
-              <div className="text-sm">
-                <p className="mb-1 font-medium">Evite Cafeína</p>
-                <p className="text-muted-foreground">Não tome café 6h antes de dormir</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 rounded-lg bg-secondary/30 p-3">
-              <Sun className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange-500" />
-              <div className="text-sm">
-                <p className="mb-1 font-medium">Luz Natural</p>
-                <p className="text-muted-foreground">Exponha-se ao sol pela manhã</p>
-              </div>
-            </div>
+            <Tip icon={<Moon className="mt-0.5 h-5 w-5 text-purple-500" />} title="Ambiente Escuro">
+              Use cortinas blackout ou máscara de dormir
+            </Tip>
+            <Tip icon={<Clock className="mt-0.5 h-5 w-5 text-blue-500" />} title="Rotina Consistente">
+              Durma e acorde no mesmo horário
+            </Tip>
+            <Tip icon={<Zap className="mt-0.5 h-5 w-5 text-yellow-500" />} title="Evite Cafeína">
+              Não tome café 6h antes de dormir
+            </Tip>
+            <Tip icon={<Sun className="mt-0.5 h-5 w-5 text-orange-500" />} title="Luz Natural">
+              Exponha-se ao sol pela manhã
+            </Tip>
           </div>
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+function AlertContent() {
+  return (
+    <>
+      <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" />
+      <div className="text-sm">
+        <p className="mb-1 font-medium">Como funciona?</p>
+        <p className="text-muted-foreground">
+          Um ciclo de sono completo dura 90 minutos. Acordar entre ciclos (não no meio) ajuda você a
+          se sentir mais descansado. Recomendamos 5–6 ciclos (7h30–9h) para adultos.
+        </p>
+      </div>
+    </>
+  )
+}
+
+function Tip({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 rounded-lg bg-secondary/30 p-3">
+      {icon}
+      <div className="text-sm">
+        <p className="mb-1 font-medium">{title}</p>
+        <p className="text-muted-foreground">{children}</p>
+      </div>
     </div>
   )
 }

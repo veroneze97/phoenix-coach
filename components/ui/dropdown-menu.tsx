@@ -14,10 +14,16 @@ const DropdownMenuPortal = DropdownMenuPrimitive.Portal
 const DropdownMenuSub = DropdownMenuPrimitive.Sub
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup
 
+// ---------- Tipos auxiliares para aceitar `inset` ----------
+type SubTriggerBaseProps = React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger>
+type ItemBaseProps = React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item>
+type LabelBaseProps = React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label>
+type WithInset<T> = Omit<T, 'inset'> & { inset?: boolean }
+
 // DropdownMenuSubTrigger
 const DropdownMenuSubTrigger = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubTrigger>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger>
+  WithInset<SubTriggerBaseProps>
 >(({ className, inset, children, ...props }, ref) => (
   <DropdownMenuPrimitive.SubTrigger
     ref={ref}
@@ -73,7 +79,7 @@ DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
 // DropdownMenuItem
 const DropdownMenuItem = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item>
+  WithInset<ItemBaseProps>
 >(({ className, inset, ...props }, ref) => (
   <DropdownMenuPrimitive.Item
     ref={ref}
@@ -137,7 +143,7 @@ DropdownMenuRadioItem.displayName = DropdownMenuPrimitive.RadioItem.displayName
 // DropdownMenuLabel
 const DropdownMenuLabel = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Label>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label>
+  WithInset<LabelBaseProps>
 >(({ className, inset, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
@@ -161,7 +167,6 @@ const DropdownMenuSeparator = React.forwardRef<
 DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName
 
 // DropdownMenuShortcut
-// Convertido para forwardRef para consistência. Renderiza um <span>.
 const DropdownMenuShortcut = React.forwardRef<
   HTMLSpanElement,
   React.HTMLAttributes<HTMLSpanElement>

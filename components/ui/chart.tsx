@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import * as RechartsPrimitive from 'recharts'
-import { type TooltipProps, type LegendProps } from 'recharts'
+import type { TooltipProps as RTooltipProps, LegendProps } from 'recharts'
 
 import { cn } from '@/lib/utils'
 
@@ -28,11 +28,9 @@ const ChartContext = React.createContext<ChartContextValue | null>(null)
 
 function useChart(): ChartContextValue {
   const context = React.useContext(ChartContext)
-
   if (!context) {
     throw new Error('useChart must be used within a <ChartContainer />')
   }
-
   return context
 }
 
@@ -40,7 +38,8 @@ function useChart(): ChartContextValue {
 
 interface ChartContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   config: ChartConfig
-  children: React.ReactNode
+  /** Recharts <ResponsiveContainer> exige exatamente um ReactElement como filho */
+  children: React.ReactElement
   id?: string
 }
 
@@ -61,7 +60,9 @@ const ChartContainer = React.forwardRef<HTMLDivElement, ChartContainerProps>(
           {...props}
         >
           <ChartStyle id={chartId} config={config} />
-          <RechartsPrimitive.ResponsiveContainer>{children}</RechartsPrimitive.ResponsiveContainer>
+          {children ? (
+            <RechartsPrimitive.ResponsiveContainer>{children}</RechartsPrimitive.ResponsiveContainer>
+          ) : null}
         </div>
       </ChartContext.Provider>
     )
@@ -74,43 +75,34 @@ interface ChartStyleProps {
   config: ChartConfig
 }
 
+/** Gera CSS sem template aninhado para evitar parsing errors */
 const ChartStyle = ({ id, config }: ChartStyleProps) => {
-  const colorConfig = Object.entries(config).filter(([, config]) => config.theme || config.color)
+  const colorConfig = Object.entries(config).filter(([, c]) => c.theme || c.color)
+  if (!colorConfig.length) return null
 
-  if (!colorConfig.length) {
-    return null
+  const THEMES = { light: '', dark: '.dark' } as const
+
+  let css = ''
+  for (const [theme, prefix] of Object.entries(THEMES)) {
+    const lines: string[] = []
+    for (const [key, itemConfig] of colorConfig) {
+      const color = itemConfig.theme?.[theme as 'light' | 'dark'] ?? itemConfig.color
+      if (color) lines.push(`  --color-${key}: ${color};`)
+    }
+    css += `${prefix} [data-chart=${id}] {\n${lines.join('\n')}\n}\n`
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
- ${prefix} [data-chart=${id}] {
- ${colorConfig
-  .map(([key, itemConfig]) => {
-    const color = itemConfig.theme?.[theme] || itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
-  })
-  .join('\n')}
-}
-`,
-          )
-          .join('\n'),
-      }}
-    />
-  )
+  return <style dangerouslySetInnerHTML={{ __html: css }} />
 }
 
-// Format: { THEME_NAME: CSS_SELECTOR }
-const THEMES = { light: '', dark: '.dark' } as const
+// Tooltip / Legend
 
 const ChartTooltip = RechartsPrimitive.Tooltip
 
 interface ChartTooltipContentProps extends React.HTMLAttributes<HTMLDivElement> {
   active?: boolean
-  payload?: TooltipProps['payload']
+  /** TooltipProps precisa de 2 genéricos (TValue, TName). Usamos number/string por padrão. */
+  payload?: RTooltipProps<number, string>['payload']
   indicator?: 'line' | 'dot' | 'dashed'
   hideLabel?: boolean
   hideIndicator?: boolean
@@ -145,11 +137,9 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContent
     const { config } = useChart()
 
     const tooltipLabel = React.useMemo(() => {
-      if (hideLabel || !payload?.length) {
-        return null
-      }
+      if (hideLabel || !payload?.length) return null
 
-      const [item] = payload
+      const [item] = payload as any[]
       const key = `${labelKey || item?.dataKey || item?.name || 'value'}`
       const itemConfig = getPayloadConfigFromPayload(config, item, key)
       const value =
@@ -161,16 +151,11 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContent
         )
       }
 
-      if (!value) {
-        return null
-      }
-
+      if (!value) return null
       return <div className={cn('font-medium', labelClassName)}>{value}</div>
     }, [label, labelFormatter, payload, hideLabel, labelClassName, config, labelKey])
 
-    if (!active || !payload?.length) {
-      return null
-    }
+    if (!active || !payload?.length) return null
 
     const nestLabel = payload.length === 1 && indicator !== 'dot'
 
@@ -184,10 +169,10 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContent
       >
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
-          {payload.map((item, index) => {
+          {(payload as any[]).map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || 'value'}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
-            const indicatorColor = color || item.payload.fill || item.color
+            const indicatorColor = color || item.payload?.fill || item.color
 
             return (
               <div
@@ -216,10 +201,12 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContent
                               'my-0.5': nestLabel && indicator === 'dashed',
                             },
                           )}
-                          style={{
-                            '--color-bg': indicatorColor,
-                            '--color-border': indicatorColor,
-                          } as React.CSSProperties}
+                          style={
+                            {
+                              '--color-bg': indicatorColor,
+                              '--color-border': indicatorColor,
+                            } as React.CSSProperties
+                          }
                         />
                       )
                     )}
@@ -266,9 +253,7 @@ const ChartLegendContent = React.forwardRef<HTMLDivElement, ChartLegendContentPr
   ({ className, hideIcon = false, payload, verticalAlign = 'bottom', nameKey }, ref) => {
     const { config } = useChart()
 
-    if (!payload?.length) {
-      return null
-    }
+    if (!payload?.length) return null
 
     return (
       <div
@@ -279,7 +264,7 @@ const ChartLegendContent = React.forwardRef<HTMLDivElement, ChartLegendContentPr
           className,
         )}
       >
-        {payload.map((item) => {
+        {payload.map((item: any) => {
           const key = `${nameKey || item.dataKey || 'value'}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
 
@@ -295,9 +280,7 @@ const ChartLegendContent = React.forwardRef<HTMLDivElement, ChartLegendContentPr
               ) : (
                 <div
                   className="h-2 w-2 shrink-0 rounded-[2px]"
-                  style={{
-                    backgroundColor: item.color,
-                  }}
+                  style={{ backgroundColor: item.color }}
                 />
               )}
               {itemConfig?.label}
@@ -316,9 +299,7 @@ function getPayloadConfigFromPayload(
   payload: any,
   key: string,
 ): ChartConfig[string] | undefined {
-  if (typeof payload !== 'object' || payload === null) {
-    return undefined
-  }
+  if (typeof payload !== 'object' || payload === null) return undefined
 
   const payloadPayload =
     'payload' in payload && typeof payload.payload === 'object' && payload.payload !== null
@@ -327,10 +308,10 @@ function getPayloadConfigFromPayload(
 
   let configLabelKey = key
 
-  if (key in payload && typeof payload[key] === 'string') {
-    configLabelKey = payload[key]
-  } else if (payloadPayload && key in payloadPayload && typeof payloadPayload[key] === 'string') {
-    configLabelKey = payloadPayload[key]
+  if (key in payload && typeof (payload as any)[key] === 'string') {
+    configLabelKey = (payload as any)[key]
+  } else if (payloadPayload && key in payloadPayload && typeof (payloadPayload as any)[key] === 'string') {
+    configLabelKey = (payloadPayload as any)[key]
   }
 
   return configLabelKey in config ? config[configLabelKey] : config[key]

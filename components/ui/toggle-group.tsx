@@ -9,8 +9,6 @@ import { toggleVariants } from '@/components/ui/toggle'
 
 // --- Tipagem do Contexto ---
 
-// Criamos uma interface para o valor do nosso contexto.
-// Usamos `Required<VariantProps<...>>` para garantir que `size` e `variant` sempre estejam presentes no objeto do contexto.
 type ToggleGroupContextType = Required<VariantProps<typeof toggleVariants>>
 
 const ToggleGroupContext = React.createContext<ToggleGroupContextType>({
@@ -20,10 +18,10 @@ const ToggleGroupContext = React.createContext<ToggleGroupContextType>({
 
 // --- Componente Provedor (ToggleGroup) ---
 
-// A interface das props combina as props do Radix com as variantes de estilo.
-interface ToggleGroupProps
-  extends React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root>,
-    VariantProps<typeof toggleVariants> {}
+// Use type + interseção em vez de interface + extends
+type ToggleGroupProps =
+  React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> &
+  VariantProps<typeof toggleVariants>
 
 const ToggleGroup = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Root>,
@@ -34,7 +32,7 @@ const ToggleGroup = React.forwardRef<
     className={cn('flex items-center justify-center gap-1', className)}
     {...props}
   >
-    <ToggleGroupContext.Provider value={{ variant: variant || 'default', size: size || 'default' }}>
+    <ToggleGroupContext.Provider value={{ variant: variant ?? 'default', size: size ?? 'default' }}>
       {children}
     </ToggleGroupContext.Provider>
   </ToggleGroupPrimitive.Root>
@@ -44,11 +42,10 @@ ToggleGroup.displayName = ToggleGroupPrimitive.Root.displayName
 
 // --- Componente Item (ToggleGroupItem) ---
 
-// A interface das props do item também combina as props do Radix com as variantes,
-// permitindo que um item individual sobrescreva o estilo do grupo.
-interface ToggleGroupItemProps
-  extends React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item>,
-    VariantProps<typeof toggleVariants> {}
+// Use type + interseção aqui também
+type ToggleGroupItemProps =
+  React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item> &
+  VariantProps<typeof toggleVariants>
 
 const ToggleGroupItem = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Item>,
@@ -56,16 +53,17 @@ const ToggleGroupItem = React.forwardRef<
 >(({ className, children, variant, size, ...props }, ref) => {
   const context = React.useContext(ToggleGroupContext)
 
-  // Usamos as variantes do contexto, mas permitimos que o item as sobrescreva.
-  // A lógica `context.variant || variant` funciona perfeitamente, pois se `context.variant` for `undefined`
-  // (o que não acontecerá se o item estiver dentro do grupo), ele usará a prop do item.
+  // O item SOBRESCREVE o grupo quando passar variant/size
+  const finalVariant = variant ?? context.variant
+  const finalSize = size ?? context.size
+
   return (
     <ToggleGroupPrimitive.Item
       ref={ref}
       className={cn(
         toggleVariants({
-          variant: context.variant || variant,
-          size: context.size || size,
+          variant: finalVariant,
+          size: finalSize,
         }),
         className,
       )}

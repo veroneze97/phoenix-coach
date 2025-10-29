@@ -8,43 +8,33 @@ import { cn } from '@/lib/utils'
 
 // --- Componentes Simples (Sem forwardRef) ---
 
-// Usamos React.ComponentPropsWithoutRef para obter todas as props do componente primitivo do Radix
-// e as estendemos, adicionando tipagem para `className` se necessário.
 type MenubarMenuProps = React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Menu>
-
 function MenubarMenu({ ...props }: MenubarMenuProps) {
   return <MenubarPrimitive.Menu {...props} />
 }
 
 type MenubarGroupProps = React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Group>
-
 function MenubarGroup({ ...props }: MenubarGroupProps) {
   return <MenubarPrimitive.Group {...props} />
 }
 
-interface MenubarPortalProps extends React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Portal> {}
-
+type MenubarPortalProps = React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Portal>
 function MenubarPortal({ ...props }: MenubarPortalProps) {
   return <MenubarPrimitive.Portal {...props} />
 }
 
-interface MenubarRadioGroupProps extends React.ComponentPropsWithoutRef<typeof MenubarPrimitive.RadioGroup> {}
-
+type MenubarRadioGroupProps = React.ComponentPropsWithoutRef<typeof MenubarPrimitive.RadioGroup>
 function MenubarRadioGroup({ ...props }: MenubarRadioGroupProps) {
   return <MenubarPrimitive.RadioGroup {...props} />
 }
 
-interface MenubarSubProps extends React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Sub> {}
-
+type MenubarSubProps = React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Sub>
 function MenubarSub({ ...props }: MenubarSubProps) {
   return <MenubarPrimitive.Sub data-slot="menubar-sub" {...props} />
 }
 
-
 // --- Componentes com forwardRef ---
 
-// Para componentes com forwardRef, definimos a interface de props e o tipo do `ref`.
-// O tipo do `ref` geralmente é o elemento HTML que o componente renderiza (ex: HTMLDivElement, HTMLButtonElement).
 const Menubar = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Root>
@@ -75,9 +65,12 @@ const MenubarTrigger = React.forwardRef<
 ))
 MenubarTrigger.displayName = MenubarPrimitive.Trigger.displayName
 
+type MenubarSubTriggerProps =
+  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.SubTrigger> & { inset?: boolean }
+
 const MenubarSubTrigger = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.SubTrigger>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.SubTrigger>
+  MenubarSubTriggerProps
 >(({ className, inset, children, ...props }, ref) => (
   <MenubarPrimitive.SubTrigger
     ref={ref}
@@ -129,9 +122,12 @@ const MenubarContent = React.forwardRef<
 ))
 MenubarContent.displayName = MenubarPrimitive.Content.displayName
 
+type MenubarItemProps =
+  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Item> & { inset?: boolean }
+
 const MenubarItem = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Item>
+  MenubarItemProps
 >(({ className, inset, ...props }, ref) => (
   <MenubarPrimitive.Item
     ref={ref}
@@ -190,9 +186,12 @@ const MenubarRadioItem = React.forwardRef<
 ))
 MenubarRadioItem.displayName = MenubarPrimitive.RadioItem.displayName
 
+type MenubarLabelProps =
+  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Label> & { inset?: boolean }
+
 const MenubarLabel = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.Label>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Label>
+  MenubarLabelProps
 >(({ className, inset, ...props }, ref) => (
   <MenubarPrimitive.Label
     ref={ref}
@@ -214,9 +213,8 @@ const MenubarSeparator = React.forwardRef<
 ))
 MenubarSeparator.displayName = MenubarPrimitive.Separator.displayName
 
-// Para o MenubarShortcut, como ele renderiza um <span>, podemos estender React.HTMLAttributes<HTMLSpanElement>.
-interface MenubarShortcutProps extends React.HTMLAttributes<HTMLSpanElement> {}
-
+// Atalho (span)
+type MenubarShortcutProps = React.HTMLAttributes<HTMLSpanElement>
 const MenubarShortcut = ({ className, ...props }: MenubarShortcutProps) => {
   return (
     <span
@@ -225,7 +223,6 @@ const MenubarShortcut = ({ className, ...props }: MenubarShortcutProps) => {
     />
   )
 }
-// Corrigi o typo de "displayname" para "displayName"
 MenubarShortcut.displayName = 'MenubarShortcut'
 
 export {
