@@ -28,45 +28,41 @@ import DonutProgress from '@/components/diet/DonutProgress'
 import PhoenixOracle from '@/components/PhoenixOracle.js'
 
 // Ícones
-import { Calendar, Plus, RefreshCw, Sparkles, Egg, Utensils, Moon, Cookie } from 'lucide-react'
+import { Calendar, Plus, RefreshCw, Sparkles } from 'lucide-react'
 
-// Tipos
+// Tipos + catálogo de refeições
 import type { MealType, MealItem, SelectedFood, UUID, MealConfig } from '@/types/diet'
+import { MEALS } from '@/types/diet'
 
 /* ------------------------------------ *
  * Helpers de apresentação das refeições
  * ------------------------------------ */
-
-/** Ordem oficial das seções de refeição na UI */
-const MEALS_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks']
-
-/** Metadados visuais por refeição (inclui ícone para o MealCard) */
 const MEAL_CONFIGS: Record<MealType, MealConfig> = {
   breakfast: {
     id: 'breakfast',
     name: 'Café da manhã',
-    icon: Egg,
+    icon: () => null, // opcional: inserir ícone específico depois
     emoji: '🍳',
     gradient: 'from-amber-400 to-orange-500',
   },
   lunch: {
     id: 'lunch',
     name: 'Almoço',
-    icon: Utensils,
+    icon: () => null,
     emoji: '🍽️',
     gradient: 'from-emerald-400 to-green-600',
   },
   dinner: {
     id: 'dinner',
     name: 'Jantar',
-    icon: Moon,
+    icon: () => null,
     emoji: '🌙',
     gradient: 'from-indigo-400 to-purple-600',
   },
   snacks: {
     id: 'snacks',
     name: 'Lanches',
-    icon: Cookie,
+    icon: () => null,
     emoji: '🥪',
     gradient: 'from-pink-400 to-rose-600',
   },
@@ -88,9 +84,9 @@ export default function DietPlanner() {
     loading,
     recalculating,
     dailyIntake,
-    mealTotals,
-    mealItems,
-    weeklySummary,
+    mealTotals = [],
+    mealItems = [],
+    weeklySummary = [],
     actions,
   } = useDietData((user?.id as UUID) || undefined)
 
@@ -216,7 +212,7 @@ export default function DietPlanner() {
                 />
               </Card>
 
-              {/* Análise semanal */}
+              {/* Análise semanal — usar ternário para evitar no-unused-expressions */}
               {Array.isArray(weeklySummary) && weeklySummary.length > 0 ? (
                 <Card className={`${cardBase} p-8 lg:p-12`}>
                   <h3 className="mb-6 flex items-center gap-3 text-2xl font-semibold text-foreground">
@@ -264,7 +260,7 @@ export default function DietPlanner() {
                   </Button>
                 </div>
                 <div className="space-y-4">
-                  {MEALS_ORDER.map((mealId) => {
+                  {MEALS.map((mealId) => {
                     const data = Array.isArray(mealTotals)
                       ? mealTotals.find((m) => m.meal_type === mealId)
                       : null
