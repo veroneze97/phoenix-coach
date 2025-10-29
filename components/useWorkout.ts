@@ -5,20 +5,11 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { isPR } from '@/lib/workout-helpers'
 
-// Util: data local normalizada
 function todayISO(date: Date = new Date()) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
   return local.toISOString().slice(0, 10)
 }
 
-/**
- * Hook principal do Phoenix Coach
- * Gerencia todo o ciclo de vida do treino do dia:
- *  - Carrega exercícios do Supabase
- *  - Adiciona / remove / duplica / atualiza
- *  - Salva PRs automáticos
- *  - Atualiza RPE e status
- */
 export function useWorkout(user: any, selectedDate: Date) {
   const [exercises, setExercises] = useState<any[]>([])
   const [exerciseLibrary, setExerciseLibrary] = useState<any[]>([])
@@ -29,22 +20,28 @@ export function useWorkout(user: any, selectedDate: Date) {
 
   const debounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
-  // 🔄 Carrega dados principais quando user/data muda
   useEffect(() => {
-    if (user?.id) {
+    if (user) {
+      // mesmo se user.id ainda não estiver disponível, cuidamos dentro das funções
       loadWorkout()
       loadExerciseLibrary()
       loadPRs()
+    } else {
+      setLoading(false) // sem user, não bloqueia a UI
     }
   }, [user, selectedDate])
 
-  // 🧠 Buscar exercícios do dia
   const loadWorkout = async () => {
-    if (!user?.id) return
     setLoading(true)
     try {
-      const date = todayISO(selectedDate)
+      if (!user?.id) {
+        // evita travar em loading quando a sessão ainda está sendo carregada
+        setExercises([])
+        setWorkout(null)
+        return
+      }
 
+      const date = todayISO(selectedDate)
       const { data, error } = await supabase
         .from('training_exercises')
         .select('*')
@@ -58,14 +55,16 @@ export function useWorkout(user: any, selectedDate: Date) {
     } catch (err) {
       console.error('Erro ao carregar treino:', err)
       toast.error('Falha ao carregar treino do dia.')
+      setExercises([])
+      setWorkout(null)
     } finally {
       setLoading(false)
     }
   }
 
-  // 🗂️ Carrega biblioteca (catálogo geral)
   const loadExerciseLibrary = async () => {
     try {
+      if (!user?.id) return
       const { data, error } = await supabase
         .from('exercise_library')
         .select('*')
@@ -78,9 +77,9 @@ export function useWorkout(user: any, selectedDate: Date) {
     }
   }
 
-  // 🏆 Carrega PRs do usuário
   const loadPRs = async () => {
     try {
+      if (!user?.id) return
       const { data, error } = await supabase.from('prs').select('*').eq('user_id', user.id)
       if (error) throw error
       const prsMap: Record<string, any> = {}
@@ -93,11 +92,10 @@ export function useWorkout(user: any, selectedDate: Date) {
     }
   }
 
-  // ➕ Adiciona novo exercício
   const addExerciseToWorkout = async (exercise: any) => {
     if (!user?.id) return
     try {
-      const newExercise = {
+      const payload = {
         user_id: user.id,
         training_date: todayISO(selectedDate),
         exercise_name: exercise.name_pt || exercise.name,
@@ -111,44 +109,44 @@ export function useWorkout(user: any, selectedDate: Date) {
 
       const { data, error } = await supabase
         .from('training_exercises')
-        .insert([newExercise])
+        .insert([payload])
         .select()
         .single()
       if (error) throw error
 
       setExercises((prev) => [...prev, data])
-      toast.success(`${data.exercise_name} adicionado com sucesso! 💪`)
+      toast.success(`${data.exercise_name} adicionado! 💪`)
     } catch (error) {
       console.error('Erro ao adicionar exercício:', error)
       toast.error('Falha ao adicionar exercício.')
     }
   }
 
-  // ❌ Remove exercício
   const removeExercise = async (id: string) => {
     try {
       const { error } = await supabase.from('training_exercises').delete().eq('id', id)
       if (error) throw error
       setExercises((prev) => prev.filter((ex) => ex.id !== id))
-      toast.success('Exercício removido com sucesso.')
+      toast.success('Exercício removido.')
     } catch {
       toast.error('Erro ao remover exercício.')
     }
   }
 
-  // 🔁 Duplica exercício
   const duplicateExercise = async (exercise: any) => {
     try {
       const copy = { ...exercise }
       delete copy.id
       copy.order_index = exercises.length
       copy.training_date = todayISO(selectedDate)
+
       const { data, error } = await supabase
         .from('training_exercises')
         .insert([copy])
         .select()
         .single()
       if (error) throw error
+
       setExercises((prev) => [...prev, data])
       toast.success('Exercício duplicado ⚡')
     } catch {
@@ -156,7 +154,6 @@ export function useWorkout(user: any, selectedDate: Date) {
     }
   }
 
-  // 💾 Atualiza exercício com debounce otimista
   const updateExercise = useCallback(
     async (id: string, updates: any) => {
       setExercises((prev) => prev.map((ex) => (ex.id === id ? { ...ex, ...updates } : ex)))
@@ -190,7 +187,6 @@ export function useWorkout(user: any, selectedDate: Date) {
     [exercises, prs],
   )
 
-  // 🏅 Salva novo PR
   const savePR = async (exercise: any) => {
     try {
       const volume = (exercise.weight_kg || 0) * (exercise.reps || 0) * (exercise.sets || 0)
@@ -212,15 +208,11 @@ export function useWorkout(user: any, selectedDate: Date) {
     }
   }
 
-  // ✅ Salvar treino (recalcula RPE médio e marca como concluído)
   const saveWorkout = async () => {
     if (!user?.id) return
     setSaving(true)
     try {
-      const validRPEs = exercises.filter((e) => e.rpe).map((e) => e.rpe)
-      const avgRPE =
-        validRPEs.length > 0 ? validRPEs.reduce((a, b) => a + b, 0) / validRPEs.length : null
-
+      // placeholder para lógica futura (ex.: status geral do dia)
       await supabase
         .from('training_exercises')
         .update({ updated_at: new Date().toISOString() })
