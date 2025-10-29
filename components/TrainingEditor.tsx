@@ -26,14 +26,18 @@ import { WORKOUT_TEMPLATES } from '@/lib/workout-helpers'
 import { WorkoutStatus } from '@/components/WorkoutStatus'
 import WeekOverview from '@/components/WeekOverview'
 
-// ===== Framer Motion variants (com easing válido) =====
-const EASE = cubicBezier(0.16, 1, 0.3, 1)
+// ===== Utilitário de data =====
+function todayISO(date: Date = new Date()) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return local.toISOString().slice(0, 10)
+}
 
+// ===== Framer Motion variants =====
+const EASE = cubicBezier(0.16, 1, 0.3, 1)
 const fadeIn: Variants = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { duration: 0.25, ease: EASE } },
 }
-
 const slideUp: Variants = {
   hidden: { opacity: 0, y: 10 },
   show: { opacity: 1, y: 0, transition: { duration: 0.24, ease: EASE } },
@@ -64,8 +68,8 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
 
   // seleciona automaticamente o primeiro exercício do dia
   useEffect(() => {
-    if (!selectedExerciseId && exercises.length > 0 && exercises[0]?.exercise_id) {
-      setSelectedExerciseId(String(exercises[0].exercise_id))
+    if (!selectedExerciseId && exercises.length > 0 && exercises[0]?.id) {
+      setSelectedExerciseId(String(exercises[0].id))
     }
   }, [exercises, selectedExerciseId])
 
@@ -80,14 +84,16 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
     if (user) loadWorkout()
   }, [selectedDate, user, loadWorkout])
 
-  // aplica template
+  // ===== Aplicar template =====
   const handleApplyTemplate = async (templateKey: string) => {
     if (!workout) return
     if (exercises.length > 0) {
       return alert('Remova os exercícios atuais antes de aplicar um template.')
     }
+
     const template = WORKOUT_TEMPLATES[templateKey]
     const firstDay = template.days[0]
+
     for (const ex of firstDay.exercises) {
       await addExerciseToWorkout({
         id: Math.random(),
@@ -96,11 +102,15 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
         sets: ex.sets,
         reps: ex.reps,
         rest: ex.rest,
+        training_date: todayISO(selectedDate),
       })
     }
+
+    await loadWorkout()
+    toast.success('Template aplicado ao dia selecionado.')
   }
 
-  // atualiza status via RPC
+  // ===== Atualizar status =====
   const handleStatus = async (newStatus: 'done' | 'missed') => {
     if (!user || !workout) return
     try {
@@ -118,7 +128,7 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
     }
   }
 
-  // navegação entre dias
+  // ===== Navegação entre dias =====
   const changeDay = (direction: 'prev' | 'next') => {
     setStatus('planned')
     setSelectedDate((prev) => addDays(prev, direction === 'prev' ? -1 : 1))
@@ -139,21 +149,17 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
     <motion.div className="space-y-4 pb-28" variants={fadeIn} initial="hidden" animate="show">
       {/* Navegação entre dias */}
       <motion.div className="mb-2 flex items-center justify-between" variants={slideUp} initial="hidden" animate="show">
-        <motion.button whileTap={{ scale: 0.96 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-          <Button variant="ghost" onClick={() => changeDay('prev')} className="flex items-center gap-1">
-            <ArrowLeft className="h-4 w-4" /> Anterior
-          </Button>
-        </motion.button>
+        <Button variant="ghost" onClick={() => changeDay('prev')} className="flex items-center gap-1">
+          <ArrowLeft className="h-4 w-4" /> Anterior
+        </Button>
 
         <motion.h2 className="text-center text-lg font-semibold capitalize" variants={slideUp}>
           {formattedDate}
         </motion.h2>
 
-        <motion.button whileTap={{ scale: 0.96 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-          <Button variant="ghost" onClick={() => changeDay('next')} className="flex items-center gap-1">
-            Próximo <ArrowRight className="h-4 w-4" />
-          </Button>
-        </motion.button>
+        <Button variant="ghost" onClick={() => changeDay('next')} className="flex items-center gap-1">
+          Próximo <ArrowRight className="h-4 w-4" />
+        </Button>
       </motion.div>
 
       {/* Cabeçalho */}
@@ -175,14 +181,10 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
         </motion.div>
       )}
 
-      {/* Seletor + Cards (Histórico / Progresso) */}
+      {/* Cards de histórico e progresso */}
       {user && exercises.length > 0 && (
         <motion.div variants={slideUp} initial="hidden" animate="show" className="flex flex-col gap-3">
-          <ExerciseSelector
-            exercises={exercises}
-            value={selectedExerciseId}
-            onChange={setSelectedExerciseId}
-          />
+          <ExerciseSelector exercises={exercises} value={selectedExerciseId} onChange={setSelectedExerciseId} />
 
           {selectedExerciseId && (
             <>
@@ -199,7 +201,7 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
 
       {/* Status atual */}
       {workout && (
-        <motion.div variants={slideUp} initial="hidden" animate="show" whileHover={{ scale: 1.005 }} transition={{ duration: 0.15 }}>
+        <motion.div variants={slideUp} initial="hidden" animate="show" whileHover={{ scale: 1.005 }}>
           <Card className="flex items-center justify-between rounded-xl border border-phoenix-amber/30 bg-gradient-to-r from-phoenix-amber/10 to-phoenix-gold/10 px-4 py-3">
             <div className="flex items-center gap-2 text-sm">
               {status === 'done' ? (
@@ -218,44 +220,33 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
             </div>
 
             <div className="flex gap-2">
-              <motion.div whileTap={{ scale: 0.97 }}>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleStatus('done')}
-                  disabled={status === 'done'}
-                  className="border-green-600 text-green-600 transition-all hover:bg-green-600 hover:text-white"
-                >
-                  ✅ Concluir
-                </Button>
-              </motion.div>
-
-              <motion.div whileTap={{ scale: 0.97 }}>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleStatus('missed')}
-                  disabled={status === 'missed'}
-                  className="border-red-600 text-red-600 transition-all hover:bg-red-600 hover:text-white"
-                >
-                  ❌ Perdido
-                </Button>
-              </motion.div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleStatus('done')}
+                disabled={status === 'done'}
+                className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+              >
+                ✅ Concluir
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleStatus('missed')}
+                disabled={status === 'missed'}
+                className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+              >
+                ❌ Perdido
+              </Button>
             </div>
           </Card>
         </motion.div>
       )}
 
-      {/* Conteúdo */}
+      {/* Conteúdo: lista de exercícios */}
       <AnimatePresence mode="wait">
         {exercises.length === 0 ? (
-          <motion.div
-            key="empty"
-            variants={fadeIn}
-            initial="hidden"
-            animate="show"
-            exit={{ opacity: 0, transition: { duration: 0.15 } }}
-          >
+          <motion.div key="empty" variants={fadeIn} initial="hidden" animate="show" exit={{ opacity: 0 }}>
             <EmptyState
               onAddExercise={() => setIsLibraryOpen(true)}
               onApplyTemplate={handleApplyTemplate}
@@ -264,14 +255,7 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
             />
           </motion.div>
         ) : (
-          <motion.div
-            key="exercises"
-            variants={fadeIn}
-            initial="hidden"
-            animate="show"
-            exit={{ opacity: 0, transition: { duration: 0.15 } }}
-            className="space-y-3"
-          >
+          <motion.div key="exercises" variants={fadeIn} initial="hidden" animate="show" className="space-y-3">
             <AnimatePresence>
               {exercises.map((exercise, index) => (
                 <motion.div
@@ -279,7 +263,7 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
                   variants={slideUp}
                   initial="hidden"
                   animate="show"
-                  exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
+                  exit={{ opacity: 0, y: -6 }}
                 >
                   <ExerciseCard
                     exercise={exercise}
@@ -300,25 +284,23 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
         )}
       </AnimatePresence>
 
-      {/* CTA adicionar exercício */}
-      {exercises.length > 0 && (
-        <motion.div variants={slideUp} initial="hidden" animate="show" whileHover={{ scale: 1.003 }}>
-          <Card className="glass-card border-2 border-dashed border-phoenix-amber/30 transition-all hover:bg-phoenix-amber/5">
-            <motion.div whileTap={{ scale: 0.98 }}>
-              <Button
-                variant="ghost"
-                className="flex w-full items-center justify-center gap-2 py-6 text-phoenix-amber"
-                onClick={() => setIsLibraryOpen(true)}
-              >
-                <Flame className="h-4 w-4" />
-                Adicionar novo exercício
-              </Button>
-            </motion.div>
+      {/* Botão adicionar exercício */}
+      {user && (
+        <motion.div variants={slideUp} initial="hidden" animate="show">
+          <Card className="glass-card border-2 border-dashed border-phoenix-amber/30 hover:bg-phoenix-amber/5">
+            <Button
+              variant="ghost"
+              className="flex w-full items-center justify-center gap-2 py-6 text-phoenix-amber"
+              onClick={() => setIsLibraryOpen(true)}
+            >
+              <Flame className="h-4 w-4" />
+              Adicionar novo exercício
+            </Button>
           </Card>
         </motion.div>
       )}
 
-      {/* Toggle secundário (opcional) */}
+      {/* Status secundário */}
       {workout && (
         <motion.div variants={slideUp} initial="hidden" animate="show">
           <WorkoutStatus workoutId={workout.id} initialStatus={workout.status} />
@@ -330,7 +312,14 @@ export default function TrainingEditor({ selectedDate: initialDate = new Date() 
         isOpen={isLibraryOpen}
         setIsOpen={setIsLibraryOpen}
         exerciseLibrary={exerciseLibrary}
-        onAddExercise={addExerciseToWorkout}
+        onAddExercise={async (ex) => {
+          await addExerciseToWorkout({
+            ...ex,
+            training_date: todayISO(selectedDate),
+          })
+          await loadWorkout()
+          toast.success('Exercício adicionado.')
+        }}
       />
     </motion.div>
   )
