@@ -1,3 +1,4 @@
+// components/diet/FoodModal.tsx
 'use client'
 
 import { memo, useState, useEffect } from 'react'
@@ -10,16 +11,10 @@ import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
-// 🔎 Tipos reutilizáveis
-import type { UUID, MealType, MealItem, SelectedFood, MealConfig } from '@/types/diet'
-
-// Tokens visuais
-const TOKENS = {
-  shadow: 'shadow-lg',
-  gradientAction: 'bg-gradient-to-r from-amber-500 to-orange-600',
-  cardBase:
-    'bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-white/15 dark:border-zinc-700/40 shadow-2xl rounded-3xl',
-}
+// ✅ tipos centralizados
+import type { UUID, MealType, MealItem, SelectedFood, MealConfig } from '@/components/diet/types'
+// ✅ tokens centralizados
+import { TOKENS, cardBase } from '@/components/diet/tokens'
 
 interface FoodModalProps {
   open: boolean
@@ -88,7 +83,6 @@ const FoodModal = memo(function FoodModal({
         .ilike('name', `%${foodSearch}%`)
         .limit(10)
       if (error) {
-        console.error(error)
         toast.error('Erro ao buscar alimentos.')
         return
       }
@@ -113,7 +107,7 @@ const FoodModal = memo(function FoodModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`sm:max-w-lg ${TOKENS.cardBase} p-6`}>
+      <DialogContent className={`sm:max-w-lg ${cardBase} p-6`}>
         <DialogHeader className="mb-2">
           <DialogTitle className="text-2xl font-semibold tracking-tight">
             {itemToEdit ? 'Editar Alimento' : 'Adicionar Alimento'}
@@ -133,7 +127,7 @@ const FoodModal = memo(function FoodModal({
                   onClick={() => setSelectedMealType(meal.id)}
                   className={`rounded-xl py-3 transition-all ${
                     selectedMealType === meal.id
-                      ? `bg-gradient-to-r ${meal.gradient} ${TOKENS.shadow}`
+                      ? `bg-gradient-to-r ${meal.gradient} ${TOKENS.shadow.soft}`
                       : ''
                   }`}
                   aria-pressed={selectedMealType === meal.id}
@@ -144,7 +138,7 @@ const FoodModal = memo(function FoodModal({
             </div>
           </div>
 
-          {/* Campo de busca */}
+          {/* Busca de alimento */}
           <div>
             <Label className="text-sm font-semibold">Buscar alimento</Label>
             <div className="relative mt-2">
@@ -212,7 +206,7 @@ const FoodModal = memo(function FoodModal({
           </div>
         </div>
 
-        {/* Botões finais */}
+        {/* Ações */}
         <div className="mt-6 flex gap-3">
           <Button
             variant="outline"
@@ -224,7 +218,7 @@ const FoodModal = memo(function FoodModal({
           <Button
             onClick={handleSave}
             disabled={!selectedFood || !quantity || isSaving}
-            className={`h-11 flex-1 rounded-xl ${TOKENS.gradientAction} ${TOKENS.shadow} text-white transition-all hover:shadow-xl`}
+            className={`h-11 flex-1 rounded-xl ${TOKENS.gradientAction} ${TOKENS.shadow.soft} text-white transition-all hover:shadow-xl`}
           >
             {isSaving ? 'Salvando...' : itemToEdit ? 'Salvar alterações' : 'Adicionar alimento'}
           </Button>
